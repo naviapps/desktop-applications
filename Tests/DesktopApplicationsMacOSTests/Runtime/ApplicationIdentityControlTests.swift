@@ -5,6 +5,84 @@ import XCTest
 
 @MainActor
 final class ApplicationIdentityControlTests: XCTestCase {
+  func testInvalidSnapshotsFailBeforeLookingUpTheProcess() {
+    let cases: [(String, ApplicationSnapshot, ApplicationOperationError)] = [
+      (
+        "blank bundle identifier", applicationRuntimeSnapshot(bundleIdentifier: "   "),
+        .invalidBundleIdentifier
+      ),
+      (
+        "zero process identifier", applicationRuntimeSnapshot(processIdentifier: 0),
+        .invalidProcessIdentifier
+      ),
+      (
+        "negative process identifier", applicationRuntimeSnapshot(processIdentifier: -1),
+        .invalidProcessIdentifier
+      ),
+      (
+        "terminated snapshot", applicationRuntimeSnapshot(isTerminated: true),
+        .applicationTerminated
+      ),
+    ]
+    for (label, snapshot, error) in cases {
+      let manager = applicationRuntimeRejectingRunningApplicationLookup(
+        "Unexpected live process lookup for \(label).")
+      XCTAssertEqual(manager.activateApplication(snapshot), .failed(error), "Activation: \(label)")
+      XCTAssertEqual(
+        manager.terminateApplication(snapshot), .failed(error), "Termination: \(label)")
+    }
+  }
+
+  func testSnapshotControlChecksTheLiveProcessBeforeRequestingEffects() {
+    let snapshot = applicationRuntimeSnapshot()
+    let cases:
+      [(
+        String, ApplicationSnapshot, FakeRuntimeRunningApplication,
+        ApplicationRequestResult<ApplicationOperationError>
+      )] = [
+        (
+          "padded bundle identifier",
+          applicationRuntimeSnapshot(bundleIdentifier: " com.example.app\n"),
+          FakeRuntimeRunningApplication(processIdentifier: 456), .requestAccepted
+        ),
+        (
+          "omitted bundle identifier", applicationRuntimeSnapshot(bundleIdentifier: nil),
+          FakeRuntimeRunningApplication(processIdentifier: 456), .requestAccepted
+        ),
+        (
+          "mismatched process identifier", snapshot,
+          FakeRuntimeRunningApplication(processIdentifier: 999), .failed(.applicationNotFound)
+        ),
+        (
+          "mismatched bundle identifier", snapshot,
+          FakeRuntimeRunningApplication(
+            processIdentifier: 456, bundleIdentifier: "com.example.other"),
+          .failed(.applicationBundleIdentifierMismatch)
+        ),
+        (
+          "unavailable live bundle identifier", snapshot,
+          FakeRuntimeRunningApplication(processIdentifier: 456, bundleIdentifier: nil),
+          .failed(.applicationBundleIdentifierUnavailable)
+        ),
+      ]
+    for (label, snapshot, live, outcome) in cases {
+      let manager = applicationRuntimeReturningRunningApplication(
+        live, for: snapshot.processIdentifier)
+      let accepted = outcome == .requestAccepted
+
+      XCTAssertEqual(manager.activateApplication(snapshot), outcome, "Activation: \(label)")
+      XCTAssertEqual(live.activationOptions, accepted ? [[]] : [], "Activation effects: \(label)")
+      XCTAssertEqual(live.gracefulTerminationRequestCount, 0, "Activation effects: \(label)")
+      XCTAssertEqual(live.forcedTerminationRequestCount, 0, "Activation effects: \(label)")
+
+      XCTAssertEqual(manager.terminateApplication(snapshot), outcome, "Termination: \(label)")
+      XCTAssertEqual(live.activationOptions, accepted ? [[]] : [], "Termination effects: \(label)")
+      XCTAssertEqual(
+        live.gracefulTerminationRequestCount, accepted ? 1 : 0, "Termination effects: \(label)")
+      XCTAssertEqual(live.forcedTerminationRequestCount, 0, "Termination effects: \(label)")
+    }
+  }
+
   func testReusedPIDCannotActivateOrTerminateAnApplication() {
     let live = FakeRuntimeRunningApplication(processIdentifier: 456)
     live.startTime = 200
