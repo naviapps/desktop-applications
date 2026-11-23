@@ -7,3 +7,5 @@ Use Git on main. Preserve published commits and pinned dependencies; keep unfini
 Swift consumers install through Package.swift and tracked native frameworks. Rebuild native artifacts after Rust/C/input changes; maintain their provenance and runtime notices. Keep C ownership explicit and copy foreign views before invoking host callbacks. Test OS effects only in owned isolated fixtures and report actual runtime coverage separately from compilation.
 
 Use English documentation/comments. Use GitHub-hosted CI without private dependency credentials. Human QA/data and existing VM/security/sharing settings are protected. Read README.md and the affected API catalog before changing a contract.
+
+Use the revision of public SDK Tooling pinned in mise.toml for shared checks. Keep SDK-specific fixtures and distribution configuration here.

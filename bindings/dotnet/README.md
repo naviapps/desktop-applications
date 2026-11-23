@@ -172,7 +172,7 @@ See [development and validation](../../README.md#development-and-validation) for
 contributor checks. The public Windows x64 workflow runs the .NET binding fixture
 against a locally built DLL.
 
-For the packaging commands below, select the pinned SDK Tooling checkout as
+For the packaging commands below, use the SDK Tooling revision in `mise.toml` as
 described under [distribution validation](../../README.md#distribution-validation).
 On macOS, `mise exec -- make test-dotnet` tests the managed
 contracts, packages both macOS runtime assets from the verified universal

@@ -159,7 +159,9 @@ mise exec -- make check
 
 `make check` runs lint, the Rust workspace and Windows fixture tests, the managed
 .NET fixture, strict Swift tests, and a standalone SwiftPM consumer. These checks
-run from this checkout with the tools above.
+use the SDK fixtures in this checkout and the public SDK Tooling revision pinned
+in [`mise.toml`](mise.toml). Mise fetches that revision for lint, formatting,
+Swift consumer, DocC, and installed-consumer checks.
 
 Public GitHub Actions runs the same Swift tests and standalone consumer on macOS 26
 with Xcode 26.6 and macOS 27 with Xcode 27.2. The public Windows x64 job runs the
@@ -184,11 +186,12 @@ identifier normalization, caching and process validation without real OS effects
 
 ### Distribution validation
 
-Set `NAVI_SDK_TOOLING_SOURCE` to the absolute path of a clean SDK Tooling checkout at the commit in [the distribution tooling pin](tools/tooling-sources.json).
-On macOS, use that environment for `make check-distribution`, `make test-tools`, `make docs`,
-`make native-verify`, `make native` and `make test-dotnet`. These commands cover the
-tracked framework and its provenance, the portable build-driver tests, both DocC
-catalogs against package symbols, and a fresh macOS NuGet consumer.
+The distribution recipe in [`sdk-distribution.toml`](sdk-distribution.toml) covers
+native framework provenance, portable build-driver tests, DocC, and clean NuGet
+and installed consumers. Local native and package checks require
+`NAVI_SDK_TOOLING_SOURCE` to point to the absolute path of a clean SDK Tooling checkout
+at the revision in [`mise.toml`](mise.toml) before running `make check-distribution`,
+`make native-verify`, `make native`, or `make test-dotnet`.
 
 Maintainers can run the macOS and Windows x64 distribution checks in SDK Tooling
 for a reviewed SDK commit on `main`.
@@ -199,7 +202,7 @@ gh workflow run check-sdk-distribution.yml -R naviapps/sdk-tooling \
 ```
 
 To exercise the installed Rust and C clients locally, run the following from a
-clean committed checkout on owned macOS with the same tooling selection:
+clean committed checkout on owned macOS:
 
 ```sh
 mise exec -- make test-installed-consumers
@@ -212,7 +215,8 @@ fetch. The [C client](https://github.com/naviapps/desktop-applications/blob/main
 compiles against a copy of the tracked framework and notices. Both exercise
 synthetic normalization, stale-target rejection and cache invalidation without
 discovering or controlling applications. A shallow checkout needs a complete local
-mirror or bundle supplied through `--git-source` to `tools/install-consumers.py`.
+mirror or bundle. Run `mise run sdk-tooling -- installed-consumers --git-source <path>`
+to use that source.
 The independent clients verify installation from a local source mirror and the
 tracked framework bytes.
 

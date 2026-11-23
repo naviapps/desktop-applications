@@ -1,12 +1,13 @@
 .DEFAULT_GOAL := check
+SDK_TOOLING ?= mise run sdk-tooling --
 SWIFT_FLAGS := -Xswiftc -strict-concurrency=complete -Xswiftc -warnings-as-errors
 .PHONY: check check-source test-managed check-distribution native native-verify test test-consumer test-installed-consumers test-rust test-tools test-dotnet lint docs
 check: check-source test test-consumer
 
 check-source: lint test-rust test-managed
-check-distribution: lint test-tools test-rust test-dotnet docs
+check-distribution: test-tools test-dotnet docs
 lint:
-	mise exec -- python3 -B tools/quality.py check --dotnet
+	$(SDK_TOOLING) quality check --dotnet
 native:
 	python3 tools/native.py
 native-verify:
@@ -14,9 +15,9 @@ native-verify:
 test:
 	swift test $(SWIFT_FLAGS)
 test-consumer:
-	python3 -B tools/consumer.py
+	$(SDK_TOOLING) swift-consumer
 test-installed-consumers:
-	python3 -B tools/install-consumers.py
+	$(SDK_TOOLING) installed-consumers
 test-dotnet:
 	python3 -B tools/nuget.py
 test-tools:
@@ -28,11 +29,11 @@ test-rust:
 	cargo test --manifest-path fixtures/windows/Cargo.toml --locked --offline
 
 docs:
-	python3 tools/docs.py
+	$(SDK_TOOLING) docs
 
 .PHONY: format
 format:
-	mise exec -- python3 -B tools/quality.py format --dotnet
+	$(SDK_TOOLING) quality format --dotnet
 
 test-managed:
 	DESKTOP_APPLICATIONS_NATIVE_LIBRARY="$(CURDIR)/Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/CDesktopApplications" \
