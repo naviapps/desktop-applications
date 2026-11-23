@@ -2,8 +2,8 @@
 
 Run OS acceptance only in an owned isolated macOS GUI guest. Verify the minimum
 supported runtime, macOS 26, separately from newer runtimes. The Host uses
-the existing windowed Target app staged by `tools/macos.py`, with a unique bundle
-identifier and a temporary work root. It does not change permissions or settings.
+the windowed Target app staged by the [acceptance script](acceptance.py), with a
+unique bundle identifier and a temporary work root. It does not change permissions or settings.
 
 Prepare the pinned tools using [development and validation](../../README.md#development-and-validation)
 and select full Xcode through `DEVELOPER_DIR` if needed. From the repository root,
@@ -32,7 +32,7 @@ In the owned guest, select the native cancellation case:
 
 ```sh
 DESKTOP_APPLICATIONS_ACCEPTANCE_CASE=opening-cancellation \
-  mise exec -- python3 -B tools/macos.py
+  mise exec -- python3 -B fixtures/macos/acceptance.py
 ```
 
 Omit the case environment variable to run both cancellation and
