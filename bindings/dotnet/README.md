@@ -189,8 +189,8 @@ package and receipt go to the configured artifact directory or `.native-build/`.
 When the artifact directory is configured, `sdk-windows/win-x64` carries the
 complete verified Windows build for later packing.
 
-GitHub-hosted Windows CI uses an x64 runner. The full gate runs native tests and
-the installed package consumer when the pinned tooling is accessible anonymously.
+GitHub-hosted Windows CI uses an x64 runner to exercise native tests and the
+installed package consumer using the pinned tooling.
 
 To make one package with all three assets on macOS, place the accepted Windows
 artifact directory and its native receipt from the same source build under

@@ -214,10 +214,9 @@ checks can run on the existing owned isolated ARM64 worker. The
 describes its application-effects and package-consumption runner.
 
 GitHub Actions runs Rust and strict Swift tests on Xcode 27 and Rust and tooling
-tests on Windows x64. Full checks also exercise standalone language consumers
-and the installed Windows NuGet package. They run publicly and can be dispatched
-with `full` once the pinned tooling is accessible anonymously. Use the owned
-fixture guides for separate macOS and Windows desktop lifecycle checks.
+tests on Windows x64. CI also exercises standalone language consumers and the
+installed Windows NuGet package. Use the owned fixture guides for separate macOS
+and Windows desktop lifecycle checks.
 
 ### Native artifacts and notices
 
