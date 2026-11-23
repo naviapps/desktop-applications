@@ -3,7 +3,7 @@
 import argparse
 from pathlib import Path
 
-from sdk_tooling import artifacts, nuget
+from sdk_tooling import nuget
 from sdk_tooling.windows_delivery import RID
 from sdk_tooling.xcframework import xcframework
 
@@ -14,15 +14,10 @@ RUNTIMES = (*MACOS_RUNTIMES, RID)
 
 
 def package_files(root):
-    notices = root / "ThirdParty"
     return {
         "LICENSE": root / "LICENSE",
         "README.md": root / "README.md",
-        **{
-            "licenses/" + path.relative_to(notices).as_posix(): path
-            for path in artifacts.files(notices)
-            if path.name not in (".DS_Store", "registry-notices.json")
-        },
+        **nuget.retained_notice_files(root / "ThirdParty", "licenses"),
     }
 
 
