@@ -2,7 +2,6 @@
 """Build and validate Windows x64 packages on an owned Windows worker."""
 
 import argparse
-import json
 import platform
 import shutil
 import subprocess
@@ -21,37 +20,32 @@ from distribution.nuget import pack_and_consume
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def verify_retained_artifact(native):
-    support = support_inputs()
-    windows = load("windows")
-    with load("artifacts").build_lock(native.root / ".native-build"):
-        directory, receipt = windows.verify_artifact(native, "x64")
-        library = directory / (native.library + ".dll")
-        windows.require_pe_machine(library, "x64")
-        if support_inputs() != support:
-            raise ValueError("SDK support sources changed during Windows artifact verification")
-    return library, receipt["outputs"][library.name]
+def export_native(built, inventory, artifact_root, tooling):
+    destination = artifact_root / "sdk-windows" / RID
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if (
+        destination.exists()
+        or destination.is_symlink()
+        or not destination.parent.resolve().is_relative_to(artifact_root.resolve())
+    ):
+        raise ValueError("Windows native export requires a new directory inside the artifact root")
+    with tempfile.TemporaryDirectory(dir=destination.parent, prefix="native-export-") as temporary:
+        stage = Path(temporary) / RID
+        shutil.copytree(built, stage, symlinks=True)
+        if tooling.hashes(tooling.files(stage), stage) != inventory:
+            raise ValueError("Exported Windows native files differ from the accepted build")
+        stage.rename(destination)
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
-    mode = parser.add_mutually_exclusive_group()
-    mode.add_argument(
-        "--verify-artifact",
-        action="store_true",
-        help="Check retained x64 bytes without running Windows fixtures",
-    )
-    mode.add_argument(
+    parser.add_argument(
         "--native-aot", action="store_true", help="Publish and run the win-x64 Native AOT consumer"
     )
     args = parser.parse_args(argv)
-    if not args.verify_artifact and sys.platform != "win32":
+    if sys.platform != "win32":
         parser.error("Use an owned Windows worker for runtime acceptance")
     native = ffi_product(ROOT)
-    if args.verify_artifact:
-        _, digest = verify_retained_artifact(native)
-        print(json.dumps({"dllSha256": digest}))
-        return
 
     support = support_inputs()
     windows = load("windows")
@@ -68,13 +62,13 @@ def main(argv=None):
         )
     source, fingerprint = identity
     built = acceptance.build(native)
-    packages = output_dir / "packages"
     with (
         artifacts_tooling.build_lock(output_dir),
         tempfile.TemporaryDirectory(dir=output_dir, prefix="windows-x64-") as temporary,
     ):
         candidate = Path(temporary)
         dll, import_library, native_receipt = acceptance.stage(native, built, candidate)
+        native_receipt_digest = artifacts_tooling.file_sha256(built / "native-build.json")
         windows.require_pe_machine(dll, "x64")
         acceptance.run_c(
             ROOT / "fixtures/consumers/c/main.c",
@@ -84,10 +78,10 @@ def main(argv=None):
         run_managed_fixtures(acceptance, candidate, dll)
         member = f"runtimes/{RID}/native/{dll.name}"
         dll_hash = native_receipt["outputs"][dll.name]
-        package_hashes = pack_and_consume(
+        pack_and_consume(
             ROOT,
             dotnet=dotnet,
-            output=packages,
+            work_parent=candidate,
             env=env,
             version=native.version,
             runtime_files={member: dll},
@@ -100,12 +94,12 @@ def main(argv=None):
             raise ValueError("SDK support sources changed during Windows acceptance")
         artifacts.mkdir(parents=True, exist_ok=True)
         if artifacts.resolve() != output_dir.resolve():
-            shutil.copytree(built, artifacts / "sdk-windows" / RID)
-        for name, digest in package_hashes.items():
-            if packages.resolve() != artifacts.resolve():
-                shutil.copyfile(packages / name, artifacts / name)
-            if artifacts_tooling.file_sha256(artifacts / name) != digest:
-                raise ValueError("Exported Windows package differs from the accepted package")
+            export_native(
+                built,
+                native_receipt["outputs"] | {"native-build.json": native_receipt_digest},
+                artifacts,
+                artifacts_tooling,
+            )
         receipt = {
             "source": source,
             "workspaceFingerprint": fingerprint,
@@ -124,7 +118,7 @@ def main(argv=None):
                 "owned separate-process application lifecycle",
                 "clean Native AOT NuGet consumer" if args.native_aot else "clean NuGet consumer",
             ],
-            "packages": package_hashes,
+            "nativeBuildSha256": native_receipt_digest,
             "dllSha256": dll_hash,
         }
         artifacts_tooling.write_json(artifacts / "desktop-applications-windows.json", receipt)

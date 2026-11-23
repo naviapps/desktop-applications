@@ -9,15 +9,18 @@
     <Description>Application identity, lifecycle reconciliation and native Windows application management.</Description>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <IsPackable Condition="'$(SdkNativeRuntimeAssets)' == ''">false</IsPackable>
     <PublishRepositoryUrl>false</PublishRepositoryUrl>
     <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <DesktopApplicationsRuntimeAssets Condition="'$(DesktopApplicationsRuntimeAssets)' == ''">../../runtimes</DesktopApplicationsRuntimeAssets>
   </PropertyGroup>
   <ItemGroup>
     <None Include="../../../../LICENSE" Pack="true" PackagePath="/" />
     <InternalsVisibleTo Include="DesktopApplications.Tests" />
-    <None Include="$(DesktopApplicationsRuntimeAssets)/**/*" Pack="true" PackagePath="runtimes/%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="$(SdkNativeRuntimeAssets)/**/*" Condition="'$(SdkNativeRuntimeAssets)' != ''"
+          Pack="true" PackagePath="runtimes/%(RecursiveDir)%(Filename)%(Extension)" />
     <None Include="$(DesktopApplicationsNativeLibrary)" Condition="'$(DesktopApplicationsNativeLibrary)' != ''"
           CopyToOutputDirectory="Always" Pack="false">
       <Link Condition="'$(OS)' == 'Windows_NT'">desktop_applications.dll</Link>

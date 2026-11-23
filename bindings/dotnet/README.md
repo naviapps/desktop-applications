@@ -7,21 +7,22 @@ Windows operations. Hosts own selection, permission UX, scheduling and UI.
 
 ## Install and load native assets
 
-Obtain the `.nupkg` from one reviewed SDK build. For a local macOS package,
-follow [contributor validation](#contributor-validation). The host package must carry an
-asset matching the process runtime. macOS consumers use `osx-arm64` or `osx-x64`
-for shared identity, reconciliation and resource caching. Windows consumers use
-`win-x64` for shared contracts and native adapters. Use an x64 .NET process under
-emulation on Windows 11 ARM64. Consumers can use the packaged asset directly after
-restore.
+Obtain the combined `.nupkg` from one reviewed SDK build. It includes
+`osx-arm64` and `osx-x64` for shared identity, reconciliation and resource
+caching, and `win-x64` for shared contracts and native Windows adapters. Use an
+x64 .NET process under emulation on Windows 11 ARM64.
 
 With the package in a local feed, use its version and feed directory from your
 consumer project:
 
 ```sh
 dotnet add package NaviApps.DesktopApplications \
-  --version "<PACKAGE_VERSION>" --source /absolute/path/to/packages
+  --version "<PACKAGE_VERSION>" --source /absolute/path/to/packages \
+  --package-directory /absolute/path/to/new-package-cache
 ```
+
+Use an empty cache when moving from a platform-specific build at the same
+version. Set `NUGET_PACKAGES` to that cache for subsequent restores.
 
 The package carries the managed assembly, README and original notices. It places
 the selected native libraries in `runtimes/<rid>/native/` as
@@ -168,10 +169,9 @@ against a locally built DLL.
 
 For the packaging commands below, use the SDK Tooling revision in `mise.toml` as
 described under [distribution validation](../../README.md#distribution-validation).
-On macOS, `mise exec -- make test-nuget` tests the managed
-contracts, packages both macOS runtime assets from the verified universal
-framework, and runs a consumer for the executing architecture. The accepted
-package is written to `.native-build/packages/`.
+On macOS, `mise exec -- make test-nuget` tests the managed contracts, builds a
+temporary package from the verified universal framework, and runs an independent
+consumer for the executing architecture.
 
 Use native ARM64 Python, Rust and MSVC on an owned Windows 11 ARM64 worker. Install
 the `x86_64-pc-windows-msvc` Rust standard library and the x64 .NET SDK pinned in
@@ -186,12 +186,11 @@ python -I -B "$tooling/ci/run_sdk_tooling.py" python -m distribution.verify_wind
 
 The gate builds Rust and C ABI tests, runs the MSTest suite, exercises the
 application lifecycle with an owned x64 Win32 child, and installs the `win-x64`
-NuGet package in a clean consumer with JSON reflection disabled. Add `--native-aot`
+NuGet fixture in a clean consumer with JSON reflection disabled. Add `--native-aot`
 to publish and run that consumer as a native executable, including Shell resource
-lookup for the fixture itself. The package and receipt go to the configured
-artifact directory or `.native-build/`.
-When the artifact directory is configured, `sdk-windows/win-x64` carries the
-complete verified Windows build for later packing.
+lookup for the fixture itself. The fixture package is temporary. When the
+artifact directory is configured, `sdk-windows/win-x64` carries the accepted
+Windows native build and its receipt for later packing.
 
 The maintainer distribution workflow runs these native and Native AOT package
 checks on a GitHub-hosted x64 runner.
@@ -201,9 +200,13 @@ artifact directory and its native receipt from the same source build under
 `.native-build/windows/win-x64/`.
 
 ```sh
-mise run sdk-tooling -- python -m distribution.nuget --include-windows
+mise run sdk-tooling -- python -m distribution.pack_nuget \
+  --runtime osx-arm64 --runtime osx-x64 --runtime win-x64
+mise run sdk-tooling -- nuget-consumer \
+  .native-build/packages/NaviApps.DesktopApplications.0.1.0.nupkg
 ```
 
-This verifies the Windows DLL and macOS framework against their respective
-receipts and runs the packaged macOS consumer. Use a local feed or private
-distribution. Choose one build for a given package ID and version.
+The packer verifies the Windows DLL and macOS framework against their receipts
+and writes the combined package and its SHA-256 receipt to
+`.native-build/packages/`. The second command runs an independent macOS consumer
+from that package.

@@ -13,3 +13,8 @@ header = "desktop_applications.h"
 [windows_bindings]
 packages = ["desktop-applications-ffi"]
 projects = ["bindings/dotnet/tests/DesktopApplications.Tests/DesktopApplications.Tests.csproj"]
+
+[nuget]
+package_id = "NaviApps.DesktopApplications"
+fixtures = ["fixtures/consumers/dotnet/Program.cs"]
+windows_x64 = true

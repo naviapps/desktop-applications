@@ -13,9 +13,10 @@ from pathlib import Path
 from unittest.mock import Mock, call, patch
 
 from sdk_tooling import artifacts as artifact_operations
+from sdk_tooling import nuget as package_operations
 from sdk_tooling import windows_delivery
 
-from distribution import nuget
+from distribution import nuget, pack_nuget
 from distribution import verify_windows as driver
 
 
@@ -34,27 +35,14 @@ class WindowsOutputTests(unittest.TestCase):
             registry("fixtures/acceptance/windows/Cargo.lock") - registry("Cargo.lock"), set()
         )
 
-    def test_retained_windows_verification_selects_the_accepted_dll_and_digest(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            windows = Mock()
-            artifacts = Mock()
-            artifacts.build_lock.return_value = nullcontext()
-            native = Mock(root=root, library="desktop_applications")
-            directory = root / "accepted"
-            library = directory / "desktop_applications.dll"
-            digest = "a" * 64
-            windows.verify_artifact.return_value = directory, {"outputs": {library.name: digest}}
-            with (
-                patch.object(driver, "support_inputs", return_value={"native.toml": "b" * 64}),
-                patch.object(
-                    driver, "load", side_effect={"windows": windows, "artifacts": artifacts}.get
-                ),
-            ):
-                self.assertEqual(driver.verify_retained_artifact(native), (library, digest))
-            artifacts.build_lock.assert_called_once_with(root / ".native-build")
-            windows.verify_artifact.assert_called_once_with(native, "x64")
-            windows.require_pe_machine.assert_called_once_with(library, "x64")
+    def test_delivery_packer_rejects_a_runtime_subset_before_it_can_overwrite_the_package(self):
+        with (
+            patch.object(pack_nuget.nuget, "pack_native") as pack,
+            self.assertRaises(SystemExit) as error,
+        ):
+            pack_nuget.main(["--runtime", "win-x64"])
+        self.assertEqual(error.exception.code, 2)
+        pack.assert_not_called()
 
     def test_nuget_checks_the_windows_receipt_digest_before_running_the_consumer(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -78,32 +66,34 @@ class WindowsOutputTests(unittest.TestCase):
 
             bindings.stage_native.side_effect = stage
             bindings.pack_project.side_effect = pack
+            bindings.audit_package.side_effect = package_operations.audit_package
             with (
                 patch.multiple(nuget, artifacts=bindings, managed=bindings, packages=bindings),
-                self.assertRaisesRegex(ValueError, "Packaged runtime asset differs"),
+                patch.object(nuget, "package_files", return_value={}),
+                self.assertRaisesRegex(ValueError, "Packaged bytes differ from the accepted input"),
             ):
                 nuget.pack_and_consume(
                     root,
                     dotnet="dotnet",
                     env={},
                     version="0.1.0",
-                    output=root / "output",
+                    work_parent=root,
                     runtime_files={member: library},
                     reviewed_support={},
                     runtime="win-x64",
                     verified_hashes={member: digest},
                 )
             bindings.run_isolated_consumer.assert_not_called()
-            self.assertFalse(any((root / "output").iterdir()))
+            self.assertEqual(list(root.iterdir()), [library])
 
-    def test_nuget_preserves_the_previous_package_if_support_changes_during_acceptance(self):
+    def test_nuget_fixture_does_not_replace_the_delivery_package(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             consumer = root / "fixtures/consumers/dotnet/Program.cs"
             consumer.parent.mkdir(parents=True)
             consumer.write_text("")
-            package = root / "output/NaviApps.DesktopApplications.0.1.0.nupkg"
-            package.parent.mkdir()
+            package = root / ".native-build/packages/NaviApps.DesktopApplications.0.1.0.nupkg"
+            package.parent.mkdir(parents=True)
             package.write_bytes(b"previous package")
             bindings = Mock()
             bindings.pack_project.side_effect = lambda dotnet, project, *, output, **options: (
@@ -127,7 +117,7 @@ class WindowsOutputTests(unittest.TestCase):
                     dotnet="dotnet",
                     env={},
                     version="0.1.0",
-                    output=package.parent,
+                    work_parent=root,
                     runtime_files={},
                     reviewed_support=reviewed_support,
                 )
@@ -194,7 +184,7 @@ class WindowsOutputTests(unittest.TestCase):
                     return destination
 
                 def pack(dotnet, project, *, output, **options):
-                    assets = options["properties"]["DesktopApplicationsRuntimeAssets"]
+                    assets = options["properties"]["SdkNativeRuntimeAssets"]
                     self.assertEqual(
                         [
                             path.relative_to(assets).as_posix()
@@ -224,6 +214,7 @@ class WindowsOutputTests(unittest.TestCase):
                 artifacts = Mock()
                 artifacts.stage_native.side_effect = stage
                 artifacts.build_lock.side_effect = lambda path: nullcontext()
+                artifacts.files.side_effect = artifact_operations.files
                 artifacts.hashes.side_effect = artifact_operations.hashes
                 artifacts.file_sha256.side_effect = artifact_operations.file_sha256
                 artifacts.write_json.side_effect = lambda path, data: path.write_text(
@@ -368,11 +359,13 @@ class WindowsOutputTests(unittest.TestCase):
                 self.assertIn(candidate, consumer["exclude_paths"])
                 self.assertFalse(consumer.get("clear_environment"))
                 destination = root / ("evidence" if snapshot else ".native-build")
+                self.assertFalse(list(destination.rglob("*.nupkg")))
                 if snapshot:
-                    self.assertEqual(
-                        (destination / "sdk-windows/win-x64" / library.name).read_bytes(),
-                        library.read_bytes(),
-                    )
+                    exported = destination / "sdk-windows/win-x64"
+                    for name in (library.name, linker.name, "native-build.json"):
+                        self.assertEqual(
+                            (exported / name).read_bytes(), (published / name).read_bytes()
+                        )
                 receipt = json.loads(
                     (destination / "desktop-applications-windows.json").read_text()
                 )

@@ -1,7 +1,7 @@
 [macos]
 commands = [
   ["xcrun", "swift", "--version"],
-  ["make", "check-distribution", "test-installed-consumers"],
+  ["make", "native-verify", "test-distribution-tools", "test-installed-consumers"],
 ]
 
 [windows]
@@ -10,3 +10,6 @@ commands = [
   ["sdk-tooling", "python", "-m", "unittest", "discover", "-s", "distribution/tests"],
   ["sdk-tooling", "windows", "-m", "distribution.verify_windows", "--native-aot"],
 ]
+
+[nuget]
+pack = "distribution/pack_nuget.py"

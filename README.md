@@ -130,12 +130,10 @@ explains opening, subscriptions and resource lookup.
 
 ## Install from .NET
 
-Use `NaviApps.DesktopApplications` with ABI 2 native assets from the same SDK
-build. The macOS packaging gate supplies `osx-arm64` and `osx-x64` assets for
-shared operations. The Windows packaging gate supplies `win-x64` for shared
-and native Windows operations. Windows 11 ARM64 runs the x64 .NET consumer under
-emulation. Both gates run a clean local NuGet consumer. All managed
-identity and cache operations need the native library. See the
+The `NaviApps.DesktopApplications` NuGet package contains the managed API and
+ABI 2 native assets for `osx-arm64`, `osx-x64` and `win-x64`. On Windows 11 ARM64,
+use x64 .NET under emulation. All managed identity and cache operations use the
+native library. See the
 [.NET guide](https://github.com/naviapps/desktop-applications/blob/main/bindings/dotnet/README.md)
 for installation, native loading, Windows limitations and examples.
 
@@ -200,8 +198,11 @@ installed consumers. Use `mise exec -- make check-distribution` on macOS
 with the checkout's pinned tooling. The SDK-owned checks live in
 [`distribution`](distribution).
 
-Maintainers can run the macOS and Windows x64 distribution checks in SDK Tooling
-for a reviewed SDK commit on `main`.
+Maintainers can run distribution checks in SDK Tooling for a reviewed commit on
+`main`. The workflow combines the verified Windows x64 and macOS native assets
+into a single NuGet package. Independent consumers restore and run the same
+package on both macOS architectures and on Windows x64. Set
+`windows-on-arm=true` to repeat the x64 check on Windows 11 ARM64.
 
 ```sh
 gh workflow run check-sdk-distribution.yml -R naviapps/sdk-tooling \
