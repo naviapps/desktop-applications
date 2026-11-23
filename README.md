@@ -213,10 +213,11 @@ checks can run on the existing owned isolated ARM64 worker. The
 [.NET guide](https://github.com/naviapps/desktop-applications/blob/main/bindings/dotnet/README.md#contributor-validation)
 describes its application-effects and package-consumption runner.
 
-GitHub Actions runs the full macOS SDK checks with Xcode 27, strict Swift tests
-with Xcode 26.6 on macOS 26, and Rust and tooling tests on Windows x64. CI also exercises standalone language consumers and the
-installed Windows NuGet package. Use the owned fixture guides for separate macOS
-and Windows desktop lifecycle checks.
+GitHub Actions runs the same strict Swift tests and standalone Swift consumer
+on macOS 26 with Xcode 26.6 and macOS 27 with Xcode 27.2. The macOS distribution
+job checks Rust, C, .NET, documentation, and tooling. The Windows x64 job checks
+native bindings and the installed NuGet package. Use the owned fixture guides
+for separate macOS and Windows desktop lifecycle checks.
 
 ### Native artifacts and notices
 
