@@ -3,17 +3,15 @@
 
 import argparse
 import hashlib
-import json
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
 import zipfile
 from pathlib import Path
 
-from _tooling import load, support_inputs
-from native import builder
+from sdk_tooling.adapters import load, support_inputs
+from sdk_tooling.native_plan import builder
 
 PACKAGE = "NaviApps.DesktopApplications"
 OVERRIDE = "DESKTOP_APPLICATIONS_NATIVE_LIBRARY"
@@ -115,7 +113,7 @@ def main(argv=None):
     )
     args = parser.parse_args(argv)
     if sys.platform != "darwin":
-        raise SystemExit("Use tools/windows.py to produce x64 packages on an owned Windows worker.")
+        raise SystemExit("Run the Windows distribution fixture on an owned Windows worker.")
 
     support = support_inputs()
     env = dict(
@@ -139,20 +137,12 @@ def main(argv=None):
     }
     verified_hashes = {}
     if args.include_windows:
-        result = subprocess.check_output(
-            [
-                sys.executable,
-                "-B",
-                root / "tools/windows.py",
-                "--verify-artifact",
-            ],
-            cwd=root,
-            text=True,
-        )
-        filename = native.library + ".dll"
-        member = f"runtimes/{WINDOWS_RUNTIME}/native/{filename}"
-        runtime_files[member] = root / ".native-build/windows" / WINDOWS_RUNTIME / filename
-        verified_hashes[member] = json.loads(result)["dllSha256"]
+        from fixtures.distribution.windows import verify_retained_artifact
+
+        library, digest = verify_retained_artifact(native)
+        member = f"runtimes/{WINDOWS_RUNTIME}/native/{library.name}"
+        runtime_files[member] = library
+        verified_hashes[member] = digest
     bindings = load("bindings")
     managed = root / "bindings/dotnet"
     bindings.run_managed(

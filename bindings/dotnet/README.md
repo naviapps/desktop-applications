@@ -181,11 +181,13 @@ package is written to `.native-build/packages/`.
 
 Use native ARM64 Python, Rust and MSVC on an owned Windows 11 ARM64 worker. Install
 the `x86_64-pc-windows-msvc` Rust standard library and the x64 .NET SDK pinned in
-`mise.toml`. Set `DOTNET_BIN` to the x64 executable's absolute path. Run the
-Windows x64 gate from this checkout.
+`mise.toml`. Set `DOTNET_BIN` to the x64 executable's absolute path. From
+this checkout, run the Windows x64 gate with an SDK Tooling checkout at the
+pinned revision.
 
 ```powershell
-python -B tools/windows.py
+$tooling = (Resolve-Path ../sdk-tooling).Path
+python -I -B "$tooling/tasks/sdk" python -m fixtures.distribution.windows
 ```
 
 The gate builds Rust and C ABI tests, runs managed contracts with an owned x64
@@ -202,7 +204,7 @@ artifact directory and its native receipt from the same source build under
 `.native-build/windows/win-x64/`.
 
 ```sh
-mise exec -- python3 -B tools/nuget.py --include-windows
+mise run sdk-tooling -- python -m fixtures.distribution.nuget --include-windows
 ```
 
 This verifies the Windows DLL and macOS framework against their respective

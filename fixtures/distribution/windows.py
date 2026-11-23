@@ -13,13 +13,26 @@ import tempfile
 import tomllib
 from pathlib import Path
 
-from _tooling import load, support_inputs
-from native import builder
-from nuget import OVERRIDE, WINDOWS_RUNTIME, pack_and_consume
+from sdk_tooling.adapters import load, support_inputs
+from sdk_tooling.native_plan import builder
 
-ROOT = Path(__file__).resolve().parent.parent
+from fixtures.distribution.nuget import OVERRIDE, WINDOWS_RUNTIME, pack_and_consume
+
+ROOT = Path(__file__).resolve().parents[2]
 TARGET = "x86_64-pc-windows-msvc"
 RID = WINDOWS_RUNTIME
+
+
+def verify_retained_artifact(native):
+    support = support_inputs()
+    windows = load("windows")
+    with load("artifacts").build_lock(native.root / ".native-build"):
+        directory, receipt = windows.verify_artifact(native, "x64")
+        library = directory / (native.library + ".dll")
+        windows.require_pe_machine(library, "x64")
+        if support_inputs() != support:
+            raise ValueError("SDK support sources changed during Windows artifact verification")
+    return library, receipt["outputs"][library.name]
 
 
 def main(argv=None):
@@ -32,21 +45,17 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if not args.verify_artifact and sys.platform != "win32":
         parser.error("Use an owned Windows worker for runtime acceptance")
+    native = builder(ROOT)
+    if args.verify_artifact:
+        _, digest = verify_retained_artifact(native)
+        print(json.dumps({"dllSha256": digest}))
+        return
+
     support = support_inputs()
     windows = load("windows")
-    native = builder()
     library = native.library + ".dll"
     artifacts_tooling = load("artifacts")
     output_dir = ROOT / ".native-build"
-    if args.verify_artifact:
-        with artifacts_tooling.build_lock(output_dir):
-            directory, receipt = windows.verify_artifact(native, "x64")
-            windows.require_pe_machine(directory / library, "x64")
-            if support_inputs() != support:
-                raise ValueError("SDK support sources changed during Windows artifact verification")
-        print(json.dumps({"dllSha256": receipt["outputs"][library]}))
-        return
-
     bindings = load("bindings")
     host = windows.host_architecture()
     env, tools, dotnet = windows.native_environment(host, target_architecture="x64")

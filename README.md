@@ -188,10 +188,9 @@ identifier normalization, caching and process validation without real OS effects
 
 The distribution recipe in [`sdk-distribution.toml`](sdk-distribution.toml) covers
 native framework provenance, portable build-driver tests, DocC, and clean NuGet
-and installed consumers. Local native and package checks require
-`NAVI_SDK_TOOLING_SOURCE` to point to the absolute path of a clean SDK Tooling checkout
-at the revision in [`mise.toml`](mise.toml) before running `make check-distribution`,
-`make native-verify`, `make native`, or `make test-dotnet`.
+and installed consumers. Use `mise exec -- make check-distribution` on macOS
+with the checkout's pinned tooling. The SDK-owned checks live in
+[`fixtures/distribution`](fixtures/distribution).
 
 Maintainers can run the macOS and Windows x64 distribution checks in SDK Tooling
 for a reviewed SDK commit on `main`.
@@ -231,9 +230,8 @@ describes its application-effects and package-consumption runner.
 ### Native artifacts and notices
 
 Rebuild after native-input changes. Install the Rust standard-library targets
-`aarch64-apple-darwin` and `x86_64-apple-darwin` for a universal rebuild. Set
-`NAVI_SDK_TOOLING_SOURCE` as described under [distribution validation](#distribution-validation)
-and run the rebuild.
+`aarch64-apple-darwin` and `x86_64-apple-darwin` for a universal rebuild.
+The native framework policy lives in [`native.toml`](native.toml).
 
 ```sh
 mise exec -- make native

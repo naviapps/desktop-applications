@@ -1,7 +1,6 @@
 """SDK acceptance consumes the shared builder's output, including redirected Cargo builds."""
 
 import hashlib
-import importlib.util
 import json
 import os
 import sys
@@ -13,10 +12,13 @@ from contextlib import nullcontext
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+from fixtures.distribution import nuget
+from fixtures.distribution import windows as driver
+
 
 class WindowsOutputTests(unittest.TestCase):
     def test_fixture_uses_the_registry_inputs_fetched_for_the_sdk(self):
-        root = Path(__file__).resolve().parents[2]
+        root = Path(__file__).resolve().parents[3]
 
         def registry(path):
             return {
@@ -27,11 +29,29 @@ class WindowsOutputTests(unittest.TestCase):
 
         self.assertEqual(registry("fixtures/windows/Cargo.lock") - registry("Cargo.lock"), set())
 
-    def test_nuget_checks_the_windows_receipt_digest_before_running_the_consumer(self):
-        tools = Path(__file__).resolve().parents[1]
-        with patch.object(sys, "path", [str(tools), *sys.path]):
-            import nuget
+    def test_retained_windows_verification_selects_the_accepted_dll_and_digest(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            windows = Mock()
+            artifacts = Mock()
+            artifacts.build_lock.return_value = nullcontext()
+            native = Mock(root=root, library="desktop_applications")
+            directory = root / "accepted"
+            library = directory / "desktop_applications.dll"
+            digest = "a" * 64
+            windows.verify_artifact.return_value = directory, {"outputs": {library.name: digest}}
+            with (
+                patch.object(driver, "support_inputs", return_value={"native.toml": "b" * 64}),
+                patch.object(
+                    driver, "load", side_effect={"windows": windows, "artifacts": artifacts}.get
+                ),
+            ):
+                self.assertEqual(driver.verify_retained_artifact(native), (library, digest))
+            artifacts.build_lock.assert_called_once_with(root / ".native-build")
+            windows.verify_artifact.assert_called_once_with(native, "x64")
+            windows.require_pe_machine.assert_called_once_with(library, "x64")
 
+    def test_nuget_checks_the_windows_receipt_digest_before_running_the_consumer(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             library = root / "desktop_applications.dll"
@@ -70,10 +90,6 @@ class WindowsOutputTests(unittest.TestCase):
             self.assertFalse(any((root / "output").iterdir()))
 
     def test_nuget_preserves_the_previous_package_if_support_changes_during_acceptance(self):
-        tools = Path(__file__).resolve().parents[1]
-        with patch.object(sys, "path", [str(tools), *sys.path]):
-            import nuget
-
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             consumer = root / "bindings/dotnet/tests/PackageConsumer/Program.cs"
@@ -87,11 +103,11 @@ class WindowsOutputTests(unittest.TestCase):
                 output / package.name
             ).write_bytes(b"new package")
             bindings.audit_package.return_value = hashlib.sha256(b"new package").hexdigest()
-            support = {"tools/vendor/sdk_tooling/bindings.py": "a" * 64}
+            support = {"@sdk-tooling/sdk_tooling/bindings.py": "a" * 64}
             reviewed_support = support.copy()
 
             def consume(*args, **kwargs):
-                support["tools/vendor/sdk_tooling/bindings.py"] = "b" * 64
+                support["@sdk-tooling/sdk_tooling/bindings.py"] = "b" * 64
 
             bindings.run_isolated_consumer.side_effect = consume
             with (
@@ -111,13 +127,6 @@ class WindowsOutputTests(unittest.TestCase):
             self.assertEqual(package.read_bytes(), b"previous package")
 
     def test_redirected_build_cannot_consume_missing_or_stale_legacy_output(self):
-        tools = Path(__file__).resolve().parents[1]
-        spec = importlib.util.spec_from_file_location(
-            "desktop_applications_windows", tools / "windows.py"
-        )
-        driver = importlib.util.module_from_spec(spec)
-        with patch.object(sys, "path", [str(tools), *sys.path]):
-            spec.loader.exec_module(driver)
         for stale, snapshot in ((False, False), (True, False), (False, True), (True, True)):
             with (
                 self.subTest(stale_legacy_output=stale, captured_workspace=snapshot),
@@ -139,7 +148,7 @@ class WindowsOutputTests(unittest.TestCase):
                 consumer = root / "bindings/dotnet/tests/PackageConsumer/Program.cs"
                 consumer.parent.mkdir(parents=True)
                 consumer.write_bytes(
-                    (tools.parent / "bindings/dotnet/tests/PackageConsumer/Program.cs").read_bytes()
+                    (driver.ROOT / "bindings/dotnet/tests/PackageConsumer/Program.cs").read_bytes()
                 )
                 unselected = root / "bindings/dotnet/runtimes/osx-arm64/native"
                 unselected.mkdir(parents=True)
@@ -203,7 +212,7 @@ class WindowsOutputTests(unittest.TestCase):
                 artifacts.write_json.side_effect = lambda path, data: path.write_text(
                     json.dumps(data)
                 )
-                support = {"tools/vendor/sdk_tooling/bindings.py": "d" * 64}
+                support = {"@sdk-tooling/sdk_tooling/bindings.py": "d" * 64}
 
                 def check_output(command, **options):
                     if command == ["dotnet", "--version"]:
@@ -224,7 +233,7 @@ class WindowsOutputTests(unittest.TestCase):
                     patch.object(driver, "ROOT", root),
                     patch.object(sys, "platform", "win32"),
                     patch.object(driver, "support_inputs", return_value=support),
-                    patch("nuget.support_inputs", return_value=support),
+                    patch.object(nuget, "support_inputs", return_value=support),
                     patch.object(driver, "builder", return_value=native),
                     patch.object(
                         driver,

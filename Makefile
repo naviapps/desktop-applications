@@ -1,17 +1,17 @@
 .DEFAULT_GOAL := check
 SDK_TOOLING ?= mise run sdk-tooling --
 SWIFT_FLAGS := -Xswiftc -strict-concurrency=complete -Xswiftc -warnings-as-errors
-.PHONY: check check-source test-managed check-distribution native native-verify test test-consumer test-installed-consumers test-rust test-tools test-dotnet lint docs
+.PHONY: check check-source test-managed check-distribution native native-verify test test-consumer test-installed-consumers test-rust test-distribution-fixtures test-dotnet lint docs
 check: check-source test test-consumer
 
 check-source: lint test-rust test-managed
-check-distribution: test-tools test-dotnet docs
+check-distribution: test-distribution-fixtures test-dotnet docs
 lint:
 	$(SDK_TOOLING) quality check --dotnet
 native:
-	python3 tools/native.py
+	$(SDK_TOOLING) native
 native-verify:
-	python3 tools/native.py --verify
+	$(SDK_TOOLING) native --verify
 test:
 	swift test $(SWIFT_FLAGS)
 test-consumer:
@@ -19,9 +19,9 @@ test-consumer:
 test-installed-consumers:
 	$(SDK_TOOLING) installed-consumers
 test-dotnet:
-	python3 -B tools/nuget.py
-test-tools:
-	python3 -B -m unittest discover -s tools/tests -v
+	$(SDK_TOOLING) python -m fixtures.distribution.nuget
+test-distribution-fixtures:
+	$(SDK_TOOLING) python -m unittest discover -s fixtures/distribution/tests -v
 test-rust:
 	cargo clippy --workspace --all-targets --locked --offline -- -D warnings
 	cargo test --workspace --locked --offline
