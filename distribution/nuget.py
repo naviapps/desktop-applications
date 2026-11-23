@@ -32,6 +32,7 @@ def pack_and_consume(
     reviewed_support,
     runtime=None,
     verified_hashes=None,
+    native_aot=False,
 ):
     dotnet_root = root / "bindings/dotnet"
     project = dotnet_root / "src" / PACKAGE / f"{PACKAGE}.csproj"
@@ -82,6 +83,13 @@ def pack_and_consume(
                             raise ValueError(
                                 "Packaged runtime asset differs from the verified native receipt"
                             )
+        properties = {"Nullable": "enable", "TreatWarningsAsErrors": "true"}
+        if native_aot:
+            properties.update(
+                DefineConstants="NATIVE_AOT_FIXTURE",
+                ILLinkTreatWarningsAsErrors="true",
+                JsonSerializerIsReflectionEnabledByDefault="false",
+            )
         packages.run_isolated_consumer(
             dotnet,
             packages=[package],
@@ -94,7 +102,8 @@ def pack_and_consume(
                 root / "target",
                 *(library.parent for library in runtime_files.values()),
             ),
-            properties={"Nullable": "enable", "TreatWarningsAsErrors": "true"},
+            properties=properties,
+            native_aot=native_aot,
         )
         if support_inputs() != reviewed_support:
             raise ValueError("SDK support sources changed during NuGet acceptance")

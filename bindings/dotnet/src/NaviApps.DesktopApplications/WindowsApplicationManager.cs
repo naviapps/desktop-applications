@@ -34,13 +34,14 @@ public sealed class ApplicationOperationException : Exception
 /// <summary>Native Windows app operations; callers own permission and selection policy.</summary>
 public sealed class WindowsApplicationManager
 {
+    private static readonly EmptyRequest Empty = new();
     private readonly Func<ApplicationState> sample;
 
-    public WindowsApplicationManager() : this(() => Native.Decode<ApplicationState>(Call(16, new { }))) { }
+    public WindowsApplicationManager() : this(() => Native.Decode<ApplicationState>(Call(16, Empty))) { }
 
     internal WindowsApplicationManager(Func<ApplicationState> sample) => this.sample = sample;
 
-    private static JsonElement Call(uint operation, object input)
+    private static JsonElement Call<T>(uint operation, T input)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows application management requires Windows.");
         var value = Native.Call(operation, input);
@@ -48,13 +49,13 @@ public sealed class WindowsApplicationManager
         return value.GetProperty("result");
     }
 #pragma warning disable CA1822 // Instance operations preserve the public native-adapter contract.
-    public IReadOnlyList<ApplicationSnapshot> GetRunningApplications() => Native.Decode<ApplicationSnapshot[]>(Call(10, new { }));
-    public ApplicationSnapshot GetForegroundApplication() => Native.Decode<ApplicationSnapshot>(Call(11, new { }));
-    public ApplicationSnapshot GetApplication(uint processId) => Native.Decode<ApplicationSnapshot>(Call(12, new { processId }));
+    public IReadOnlyList<ApplicationSnapshot> GetRunningApplications() => Native.Decode<ApplicationSnapshot[]>(Call(10, Empty));
+    public ApplicationSnapshot GetForegroundApplication() => Native.Decode<ApplicationSnapshot>(Call(11, Empty));
+    public ApplicationSnapshot GetApplication(uint processId) => Native.Decode<ApplicationSnapshot>(Call(12, new ProcessRequest(processId)));
     public uint LaunchApplication(string executable, IReadOnlyList<string>? arguments = null) =>
-        Native.Decode<uint>(Call(13, new { executable, arguments = arguments ?? Array.Empty<string>() }));
-    public void ActivateApplication(ApplicationSnapshot target) => Call(14, new { target, force = false });
-    public void TerminateApplication(ApplicationSnapshot target, bool force = false) => Call(15, new { target, force });
+        Native.Decode<uint>(Call(13, new LaunchRequest(executable, arguments ?? Array.Empty<string>())));
+    public void ActivateApplication(ApplicationSnapshot target) => Call(14, new ControlRequest(target, false));
+    public void TerminateApplication(ApplicationSnapshot target, bool force = false) => Call(15, new ControlRequest(target, force));
 
     /// <summary>Samples visible desktop applications; transitions between samples may be missed.
     /// Cancellation stops observation and never terminates another application.</summary>
@@ -180,12 +181,10 @@ public sealed class WindowsApplicationManager
         IReadOnlyList<ApplicationEvent> events, ApplicationLifecycle[]? lifecycles, ApplicationIdentifier? identifier)
     {
         if (lifecycles is null || events.Count == 0) return events;
-        var indices = Native.Decode<int[]>(Native.Call(4, new
-        {
+        var indices = Native.Decode<int[]>(Native.Call(4, new EventSelection(
             lifecycles,
             identifier,
-            candidates = events.Select(item => new { item.Lifecycle, item.Application.Identifier })
-        }));
+            events.Select(item => new EventIdentity(item.Lifecycle, item.Application.Identifier)))));
         return indices.Select(index => events[index]);
     }
 #pragma warning restore CA1822

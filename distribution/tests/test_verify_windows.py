@@ -273,7 +273,7 @@ class WindowsOutputTests(unittest.TestCase):
                     patch.object(driver.platform, "platform", return_value="mock Windows ARM64"),
                     patch("builtins.print"),
                 ):
-                    driver.main([])
+                    driver.main(["--native-aot"] if snapshot else [])
                 shared.native_environment.assert_called_once_with(
                     "arm64",
                     {
@@ -359,6 +359,12 @@ class WindowsOutputTests(unittest.TestCase):
                 )
                 consumer = bindings.run_isolated_consumer.call_args.kwargs
                 self.assertEqual(consumer["runtime"], "win-x64")
+                self.assertEqual(consumer["native_aot"], snapshot)
+                if snapshot:
+                    self.assertEqual(
+                        consumer["properties"]["DefineConstants"], "NATIVE_AOT_FIXTURE"
+                    )
+                    self.assertEqual(consumer["properties"]["ILLinkTreatWarningsAsErrors"], "true")
                 self.assertIn(candidate, consumer["exclude_paths"])
                 self.assertFalse(consumer.get("clear_environment"))
                 destination = root / ("evidence" if snapshot else ".native-build")
@@ -373,6 +379,10 @@ class WindowsOutputTests(unittest.TestCase):
                 self.assertEqual(receipt["source"], ("b" if snapshot else "a") * 40)
                 self.assertEqual(receipt["hostArchitecture"], "arm64")
                 self.assertEqual(receipt["runtime"], "win-x64")
+                self.assertEqual(
+                    receipt["acceptance"][-1],
+                    "clean Native AOT NuGet consumer" if snapshot else "clean NuGet consumer",
+                )
                 self.assertEqual(receipt["supportInputs"], support)
                 self.assertEqual(receipt["workspaceFingerprint"], "c" * 64 if snapshot else None)
                 self.assertEqual(

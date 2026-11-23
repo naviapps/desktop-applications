@@ -26,9 +26,9 @@ internal static partial class Native
         if (owner.IsInvalid) { owner.Dispose(); throw new InvalidOperationException("Native cache owner unavailable."); }
         return owner;
     }
-    internal static JsonElement QueryResourceCache(ResourceCacheHandle owner, object action)
+    internal static ResourceTransition QueryResourceCache<T>(ResourceCacheHandle owner, T action)
     {
-        var input = JsonSerializer.SerializeToUtf8Bytes(action, Json);
-        return Consume(QueryResourceCacheNative(owner, input, (nuint)input.Length));
+        var input = JsonSerializer.SerializeToUtf8Bytes(action, ApplicationJson.Type<T>());
+        return Decode<ResourceTransition>(Consume(QueryResourceCacheNative(owner, input, (nuint)input.Length)));
     }
 }

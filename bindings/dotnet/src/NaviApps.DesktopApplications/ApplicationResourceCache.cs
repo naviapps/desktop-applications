@@ -11,7 +11,6 @@ public sealed record ApplicationResourceIdentity(ApplicationIdentifier Identifie
 /// owner cannot be admitted again by this cache. Callbacks run outside the cache lock.</summary>
 public sealed class ApplicationResourceCache<T> : IDisposable where T : class
 {
-    private sealed record Transition(ulong? Generation, IReadOnlyList<ulong> EvictedGenerations, bool LoadIsCurrent);
     private static readonly object RetirementMarker = new();
     private readonly object gate = new();
     private readonly ResourceCacheHandle owner = Native.CreateResourceCache();
@@ -29,7 +28,7 @@ public sealed class ApplicationResourceCache<T> : IDisposable where T : class
         lock (gate)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            var transition = Query(new { action = "resolve", resource = identity });
+            var transition = Native.QueryResourceCache(owner, new ResolveResource("resolve", identity));
             generation = transition.Generation ?? throw new InvalidOperationException("Native load generation missing.");
             retired = Apply(transition);
             cached = values.GetValueOrDefault(generation);
@@ -48,7 +47,7 @@ public sealed class ApplicationResourceCache<T> : IDisposable where T : class
             lock (gate)
             {
                 retained = !disposed && !retiredOwners.TryGetValue(loaded, out _)
-                    && Query(new { action = "admitLoad", generation }).LoadIsCurrent;
+                    && Native.QueryResourceCache(owner, new ResourceGeneration("admitLoad", generation)).LoadIsCurrent;
                 if (retained) values[generation] = loaded;
                 retired = retained ? Array.Empty<IDisposable>() : RetireUnowned([loaded]);
             }
@@ -71,16 +70,16 @@ public sealed class ApplicationResourceCache<T> : IDisposable where T : class
         lock (gate)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            retired = Apply(Query(new { action = "invalidate", identifier }));
+            retired = Apply(Native.QueryResourceCache(owner, new InvalidateResources("invalidate", identifier)));
         }
         Release(retired);
     }
 
-    private Transition Query(object action) => Native.Decode<Transition>(Native.QueryResourceCache(owner, action));
-    private bool CanRetain(ulong generation) => Query(new { action = "validateLoad", generation }).LoadIsCurrent;
+    private bool CanRetain(ulong generation) =>
+        Native.QueryResourceCache(owner, new ResourceGeneration("validateLoad", generation)).LoadIsCurrent;
 
     // Detach retired owners before callbacks so reentrant work sees coherent state.
-    private IReadOnlyList<IDisposable> Apply(Transition transition)
+    private IReadOnlyList<IDisposable> Apply(ResourceTransition transition)
     {
         if (transition.EvictedGenerations.Count == 0) return Array.Empty<IDisposable>();
         var removed = new List<T>();

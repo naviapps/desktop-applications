@@ -7,15 +7,16 @@ Windows operations. Hosts own selection, permission UX, scheduling and UI.
 
 ## Install and load native assets
 
-Obtain the `.nupkg` from one reviewed SDK build. The host package must carry an
+Obtain the `.nupkg` from one reviewed SDK build. For a local macOS package,
+follow [contributor validation](#contributor-validation). The host package must carry an
 asset matching the process runtime. macOS consumers use `osx-arm64` or `osx-x64`
 for shared identity, reconciliation and resource caching. Windows consumers use
 `win-x64` for shared contracts and native adapters. Use an x64 .NET process under
 emulation on Windows 11 ARM64. Consumers can use the packaged asset directly after
 restore.
 
-With the package in a local feed, replace both placeholders and run from your
-consumer project directory:
+With the package in a local feed, use its version and feed directory from your
+consumer project:
 
 ```sh
 dotnet add package NaviApps.DesktopApplications \
@@ -174,7 +175,7 @@ package is written to `.native-build/packages/`.
 
 Use native ARM64 Python, Rust and MSVC on an owned Windows 11 ARM64 worker. Install
 the `x86_64-pc-windows-msvc` Rust standard library and the x64 .NET SDK pinned in
-`mise.toml`. Set `DOTNET_BIN` to the x64 executable's absolute path. From
+[`global.json`](../../global.json). Set `DOTNET_BIN` to the x64 executable's absolute path. From
 this checkout, run the Windows x64 gate with an SDK Tooling checkout at the
 pinned revision.
 
@@ -184,14 +185,16 @@ python -I -B "$tooling/ci/run_sdk_tooling.py" python -m distribution.verify_wind
 ```
 
 The gate builds Rust and C ABI tests, runs the MSTest suite, exercises the
-application lifecycle with an owned x64 WinForms child, and installs the `win-x64`
-NuGet package in a clean consumer. The package and receipt go to the configured
+application lifecycle with an owned x64 Win32 child, and installs the `win-x64`
+NuGet package in a clean consumer with JSON reflection disabled. Add `--native-aot`
+to publish and run that consumer as a native executable, including Shell resource
+lookup for the fixture itself. The package and receipt go to the configured
 artifact directory or `.native-build/`.
 When the artifact directory is configured, `sdk-windows/win-x64` carries the
 complete verified Windows build for later packing.
 
-The maintainer distribution workflow also exercises these native and installed
-package checks on a GitHub-hosted x64 runner.
+The maintainer distribution workflow runs these native and Native AOT package
+checks on a GitHub-hosted x64 runner.
 
 To make one package with all three assets on macOS, place the accepted Windows
 artifact directory and its native receipt from the same source build under

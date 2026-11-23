@@ -1,19 +1,11 @@
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace NaviApps.DesktopApplications;
 
 internal static partial class Native
 {
     private const string Library = "desktop_applications";
-    internal static readonly JsonSerializerOptions Json = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase), new ExactStringConverter() }
-    };
     [DllImport(Library, EntryPoint = "desktop_applications_abi_version", CallingConvention = CallingConvention.Cdecl)]
     private static extern uint AbiVersion();
     [DllImport(Library, EntryPoint = "desktop_applications_query", CallingConvention = CallingConvention.Cdecl)]
@@ -23,10 +15,10 @@ internal static partial class Native
     [DllImport(Library, EntryPoint = "desktop_applications_buffer_free", CallingConvention = CallingConvention.Cdecl)]
     private static extern void Free(IntPtr owner);
 
-    internal static JsonElement Call(uint operation, object input)
+    internal static JsonElement Call<T>(uint operation, T input)
     {
         EnsureAbi();
-        var data = JsonSerializer.SerializeToUtf8Bytes(input, Json);
+        var data = JsonSerializer.SerializeToUtf8Bytes(input, ApplicationJson.Type<T>());
         IntPtr owner = Query(operation, data, (nuint)data.Length);
         return Consume(owner);
     }
@@ -49,20 +41,6 @@ internal static partial class Native
         }
         finally { Free(owner); }
     }
-    internal static T Decode<T>(JsonElement element) => element.Deserialize<T>(Json) ?? throw new InvalidOperationException("Missing native value.");
-
-    private sealed class ExactStringConverter : JsonConverter<string>
-    {
-        private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
-
-        public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-            reader.GetString();
-
-        public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options)
-        {
-            // The JSON writer would replace an unpaired surrogate before Rust could reject it.
-            _ = StrictUtf8.GetByteCount(value);
-            writer.WriteStringValue(value);
-        }
-    }
+    internal static T Decode<T>(JsonElement element) =>
+        element.Deserialize(ApplicationJson.Type<T>()) ?? throw new InvalidOperationException("Missing native value.");
 }

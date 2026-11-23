@@ -4,7 +4,7 @@ public enum ApplicationIdentifierKind { Bundle, Executable, AppUserModel }
 public sealed record ApplicationIdentifier(ApplicationIdentifierKind Kind, string Value)
 {
     public static ApplicationIdentifier Create(ApplicationIdentifierKind kind, string value) =>
-        Native.Decode<ApplicationIdentifier>(Native.Call(1, new { kind, value }));
+        Native.Decode<ApplicationIdentifier>(Native.Call(1, new ApplicationIdentifier(kind, value)));
 }
 /// <summary>Creation time is an opaque OS-native token, never a cross-platform timestamp.</summary>
 public sealed record ApplicationProcessIdentity(uint ProcessId, ulong StartTime);
@@ -12,7 +12,7 @@ public sealed record ApplicationSnapshot(ApplicationProcessIdentity Identity, Ap
 {
     public ApplicationTargetValidationError? ValidateAgainst(ApplicationSnapshot actual)
     {
-        var value = Native.Call(2, new { expected = this, actual });
+        var value = Native.Call(2, new TargetRequest(this, actual));
         return value.ValueKind == System.Text.Json.JsonValueKind.Null ? null : Native.Decode<ApplicationTargetValidationError>(value);
     }
 }
@@ -36,7 +36,7 @@ public sealed record ApplicationState(IReadOnlyList<ApplicationSnapshot> Applica
 
     public static ApplicationState Empty { get; } = new(Array.Empty<ApplicationSnapshot>(), null);
     public ApplicationReconciliation Reconcile(ApplicationState current) =>
-        Native.Decode<ApplicationReconciliation>(Native.Call(3, new { previous = this, current }));
+        Native.Decode<ApplicationReconciliation>(Native.Call(3, new ReconcileRequest(this, current)));
 
     public bool Equals(ApplicationState? other) =>
         ReferenceEquals(this, other) ||

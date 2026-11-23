@@ -35,10 +35,14 @@ def verify_retained_artifact(native):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
-    parser.add_argument(
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
         "--verify-artifact",
         action="store_true",
         help="Check retained x64 bytes without running Windows fixtures",
+    )
+    mode.add_argument(
+        "--native-aot", action="store_true", help="Publish and run the win-x64 Native AOT consumer"
     )
     args = parser.parse_args(argv)
     if not args.verify_artifact and sys.platform != "win32":
@@ -90,6 +94,7 @@ def main(argv=None):
             runtime=RID,
             verified_hashes={member: dll_hash},
             reviewed_support=support,
+            native_aot=args.native_aot,
         )
         if support_inputs() != support:
             raise ValueError("SDK support sources changed during Windows acceptance")
@@ -117,7 +122,7 @@ def main(argv=None):
                 "C ownership",
                 ".NET common contracts",
                 "owned separate-process application lifecycle",
-                "clean NuGet consumer",
+                "clean Native AOT NuGet consumer" if args.native_aot else "clean NuGet consumer",
             ],
             "packages": package_hashes,
             "dllSha256": dll_hash,
