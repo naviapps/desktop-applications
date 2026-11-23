@@ -4,7 +4,6 @@
 import argparse
 import hashlib
 import json
-import os
 import platform
 import shutil
 import subprocess
@@ -13,6 +12,7 @@ import tempfile
 import tomllib
 from pathlib import Path
 
+from sdk_tooling import vm_environment as vm
 from sdk_tooling.adapters import load, support_inputs
 from sdk_tooling.native_plan import builder
 
@@ -59,6 +59,14 @@ def main(argv=None):
     bindings = load("bindings")
     host = windows.host_architecture()
     env, tools, dotnet = windows.native_environment(host, target_architecture="x64")
+    artifacts = vm.artifacts_dir(env) or output_dir
+    identity = vm.source_identity(require_fingerprint=False)
+    if identity is None:
+        identity = (
+            subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+            None,
+        )
+    source, fingerprint = identity
     version = subprocess.check_output([dotnet, "--version"], cwd=ROOT, env=env, text=True).strip()
     if version != tomllib.loads((ROOT / "mise.toml").read_text())["tools"]["dotnet"]:
         raise SystemExit("Use the pinned x64 .NET SDK from mise.toml")
@@ -133,7 +141,6 @@ def main(argv=None):
         )
         if support_inputs() != support:
             raise ValueError("SDK support sources changed during Windows acceptance")
-        artifacts = Path(env["NAVI_CI_ARTIFACTS"]) if env.get("NAVI_CI_ARTIFACTS") else output_dir
         artifacts.mkdir(parents=True, exist_ok=True)
         if artifacts.resolve() != output_dir.resolve():
             shutil.copytree(built, artifacts / "sdk-windows" / RID)
@@ -143,9 +150,8 @@ def main(argv=None):
             if hashlib.sha256((artifacts / name).read_bytes()).hexdigest() != digest:
                 raise ValueError("Exported Windows package differs from the accepted package")
         receipt = {
-            "source": os.environ.get("NAVI_CI_SOURCE_COMMIT")
-            or subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
-            "workspaceFingerprint": os.environ.get("NAVI_CI_SOURCE_FINGERPRINT"),
+            "source": source,
+            "workspaceFingerprint": fingerprint,
             "target": TARGET,
             "runtime": RID,
             "hostArchitecture": host,

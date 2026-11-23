@@ -155,7 +155,7 @@ class WindowsOutputTests(unittest.TestCase):
                 (unselected / "libdesktop_applications.dylib").write_bytes(b"stale Mac library")
                 env = {"CARGO_TARGET_DIR": str(redirected), "PATH": "owned-toolchain"}
                 if snapshot:
-                    env["NAVI_CI_ARTIFACTS"] = str(root / "evidence")
+                    env["VM_RUNNER_ARTIFACTS_DIR"] = str(root / "evidence")
                 native = Mock(version="0.1.0", library="desktop_applications")
                 shared = Mock()
                 shared.host_architecture.return_value = "arm64"
@@ -226,9 +226,12 @@ class WindowsOutputTests(unittest.TestCase):
                     patch.dict(
                         os.environ,
                         {
-                            "NAVI_CI_SOURCE_COMMIT": "b" * 40 if snapshot else "",
-                            "NAVI_CI_SOURCE_FINGERPRINT": "c" * 64 if snapshot else "",
-                        },
+                            "VM_RUNNER_SOURCE_COMMIT": "b" * 40,
+                            "VM_RUNNER_SOURCE_FINGERPRINT": "c" * 64,
+                        }
+                        if snapshot
+                        else {},
+                        clear=True,
                     ),
                     patch.object(driver, "ROOT", root),
                     patch.object(sys, "platform", "win32"),
@@ -325,7 +328,7 @@ class WindowsOutputTests(unittest.TestCase):
                 self.assertEqual(receipt["hostArchitecture"], "arm64")
                 self.assertEqual(receipt["runtime"], "win-x64")
                 self.assertEqual(receipt["supportInputs"], support)
-                self.assertEqual(receipt["workspaceFingerprint"], "c" * 64 if snapshot else "")
+                self.assertEqual(receipt["workspaceFingerprint"], "c" * 64 if snapshot else None)
                 self.assertEqual(
                     receipt["dllSha256"], hashlib.sha256(library.read_bytes()).hexdigest()
                 )

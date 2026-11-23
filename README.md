@@ -194,7 +194,7 @@ for a reviewed SDK commit on `main`.
 
 ```sh
 gh workflow run check-sdk-distribution.yml -R naviapps/sdk-tooling \
-  -f sdk=desktop-applications -f revision="$(git rev-parse HEAD)"
+  -f sdk=desktop-applications -f "revision=$(git rev-parse HEAD)"
 ```
 
 To exercise the installed Rust and C clients locally, run the following from a
