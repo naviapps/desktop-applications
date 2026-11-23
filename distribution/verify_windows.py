@@ -127,6 +127,21 @@ def main(argv=None):
 
 
 def run_managed_fixtures(acceptance, candidate, dll):
+    properties = {
+        "RuntimeIdentifier": RID,
+        "UseAppHost": "false",
+        "SelfContained": "false",
+        "DesktopApplicationsNativeLibrary": str(dll),
+    }
+    managed.run_managed(
+        acceptance.dotnet,
+        ROOT / "bindings/dotnet/tests/DesktopApplications.Tests/DesktopApplications.Tests.csproj",
+        cwd=ROOT,
+        env=acceptance.env,
+        properties=properties,
+        verify_style=True,
+    )
+
     output = candidate / "fixture-build"
     acceptance.run(
         "cargo",
@@ -147,16 +162,12 @@ def run_managed_fixtures(acceptance, candidate, dll):
     load("windows").require_pe_machine(executable, "x64")
     managed.run_managed(
         acceptance.dotnet,
-        ROOT / "bindings/dotnet/tests/DesktopApplications.Tests/DesktopApplications.Tests.csproj",
+        ROOT / "fixtures/acceptance/windows/dotnet/DesktopApplications.WindowsAcceptance.csproj",
         cwd=ROOT,
         env=acceptance.env,
         arguments=[executable],
-        properties={
-            "RuntimeIdentifier": RID,
-            "UseAppHost": "false",
-            "SelfContained": "false",
-            "DesktopApplicationsNativeLibrary": str(dll),
-        },
+        properties=properties,
+        nuget_config=ROOT / "bindings/dotnet/NuGet.Config",
         verify_style=True,
     )
 

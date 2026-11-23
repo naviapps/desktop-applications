@@ -144,13 +144,14 @@ def main(argv=None):
         runtime_files[member] = library
         verified_hashes[member] = digest
     dotnet_root = root / "bindings/dotnet"
+    tests = dotnet_root / "tests/DesktopApplications.Tests"
     managed.run_managed(
         dotnet,
-        dotnet_root / "tests/DesktopApplications.Tests/DesktopApplications.Tests.csproj",
+        tests / "DesktopApplications.Tests.csproj",
         cwd=root,
         env=env,
         properties={"DesktopApplicationsNativeLibrary": str(framework)},
-        nuget_config=dotnet_root / "NuGet.Config",
+        nuget_config=tests / "NuGet.Config",
         verify_style=True,
     )
     output = root / ".native-build/packages"

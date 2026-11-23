@@ -53,9 +53,12 @@ internal static class WindowsAcceptance
             await Task.Delay(50);
         }
     }
-    internal static async Task Run(string target)
+    private static async Task Main(string[] args)
     {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        if (args.Length != 1) throw new ArgumentException("Select one owned Windows test executable.");
         Require(RuntimeInformation.ProcessArchitecture == Architecture.X64, "Owned Windows acceptance requires an x64 .NET process.");
+        var target = Path.GetFullPath(args[0]);
         var manager = new WindowsApplicationManager();
         var work = Path.Combine(Path.GetTempPath(), "desktop-applications-" + Guid.NewGuid());
         Directory.CreateDirectory(work);
@@ -65,7 +68,7 @@ internal static class WindowsAcceptance
             {
                 string receipt = Path.Combine(work, mode + ".json");
                 await using var observation = new Observation(manager);
-                uint pid = manager.LaunchApplication(Path.GetFullPath(target), new[] { receipt, mode });
+                uint pid = manager.LaunchApplication(target, new[] { receipt, mode });
                 using var owned = Process.GetProcessById(checked((int)pid));
                 using var terminationCancellation = new CancellationTokenSource();
                 ApplicationSnapshot? captured = null;

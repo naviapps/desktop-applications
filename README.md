@@ -154,15 +154,15 @@ mise exec -- cargo fetch --locked --manifest-path fixtures/acceptance/windows/Ca
 mise exec -- make check
 ```
 
-`make check` runs lint, the Rust workspace and Windows fixture tests, the managed
-.NET fixture, strict Swift tests, and a standalone SwiftPM consumer. These checks
+`make check` runs lint, the Rust workspace and Windows fixture tests, managed
+MSTest cases, strict Swift tests, and a standalone SwiftPM consumer. These checks
 use the SDK fixtures in this checkout and the public SDK Tooling revision pinned
 in [`mise.toml`](mise.toml). Mise fetches that revision for lint, formatting,
 Swift consumer, DocC, and installed-consumer checks.
 
 Public GitHub Actions runs the same Swift tests and standalone consumer on macOS 26
 with Xcode 26.6 and macOS 27 with Xcode 27.2. The public Windows x64 job runs the
-Rust workspace tests and the .NET binding fixture against a DLL built from source.
+Rust workspace tests and the .NET binding tests against a DLL built from source.
 
 ### Focused checks and consumers
 
@@ -172,6 +172,17 @@ Rust workspace tests and the .NET binding fixture against a DLL built from sourc
 | `mise exec -- make test-rust`     | Rust workspace and Windows fixture tests                   |
 | `mise exec -- make test-managed`  | Managed API contracts                                      |
 | `mise exec -- make test-consumer` | Strict build and execution of the external SwiftPM fixture |
+
+The .NET test project restores its pinned MSTest SDK from its test-only
+NuGet configuration. After `make test-managed`, rerun a named case from the
+built test project and write a TRX report under its ignored output directory.
+
+```sh
+tests=bindings/dotnet/tests/DesktopApplications.Tests
+mise exec -- dotnet run --no-build --configuration Release --project "$tests" -- \
+  --filter 'FullyQualifiedName~BundleIdentifierNormalizesWhitespace' \
+  --report-trx --results-directory "$PWD/$tests/obj/TestResults"
+```
 
 Use `mise exec -- make format` to format owned source. The quality
 commands skip native artifacts and the original notices under `ThirdParty/`.

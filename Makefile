@@ -12,7 +12,8 @@ clean:
 	$(SDK_TOOLING) clean .build target .native-build build/docs \
 	  fixtures/consumers/swift/.build fixtures/acceptance/macos/.build fixtures/acceptance/windows/target \
 	  bindings/dotnet/src/NaviApps.DesktopApplications/bin bindings/dotnet/src/NaviApps.DesktopApplications/obj \
-	  bindings/dotnet/tests/DesktopApplications.Tests/bin bindings/dotnet/tests/DesktopApplications.Tests/obj
+	  bindings/dotnet/tests/DesktopApplications.Tests/bin bindings/dotnet/tests/DesktopApplications.Tests/obj \
+	  fixtures/acceptance/windows/dotnet/bin fixtures/acceptance/windows/dotnet/obj
 lint:
 	$(SDK_TOOLING) quality check --dotnet
 native: check-header

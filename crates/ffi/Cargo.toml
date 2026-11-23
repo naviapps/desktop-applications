@@ -9,7 +9,7 @@ rust-version.workspace = true
 
 [lib]
 name = "desktop_applications"
-crate-type = ["staticlib", "cdylib"]
+crate-type = ["cdylib"]
 
 [dependencies]
 desktop-applications.workspace = true

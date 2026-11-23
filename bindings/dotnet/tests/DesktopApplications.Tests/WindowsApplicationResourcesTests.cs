@@ -1,28 +1,61 @@
 using System.Runtime.InteropServices;
-using NaviApps.DesktopApplications;
 
-internal static class WindowsApplicationResourcesTests
+namespace NaviApps.DesktopApplications.Tests;
+
+[TestClass]
+public sealed class WindowsApplicationResourcesTests
 {
-    internal static void Run()
+    [TestMethod]
+    [OSCondition(ConditionMode.Exclude, OperatingSystems.Windows)]
+    public void WindowsResourcesAndDiscoveryRejectOtherPlatforms()
     {
-        var path = Environment.ProcessPath ?? throw new System.Diagnostics.UnreachableException("Missing owned test executable.");
+        Assert.Throws<PlatformNotSupportedException>(() => new WindowsApplicationManager().GetRunningApplications());
         using var resources = new WindowsApplicationResources();
-        if (string.IsNullOrEmpty(resources.GetDisplayName(path))) throw new System.Diagnostics.UnreachableException("Owned executable metadata unavailable.");
-        try { resources.GetIcon("relative.exe"); throw new System.Diagnostics.UnreachableException("Relative icon path accepted."); }
-        catch (ArgumentException) { }
+        Assert.Throws<PlatformNotSupportedException>(() => resources.GetDisplayName(@"C:\fixture.exe"));
+        Assert.Throws<PlatformNotSupportedException>(() => resources.GetIcon(@"C:\fixture.exe"));
+    }
+
+    [TestMethod]
+    [OSCondition(OperatingSystems.Windows)]
+    public void OwnedExecutableMetadataAndIconsAreAvailable()
+    {
+        var path = Environment.ProcessPath;
+        Assert.IsNotNull(path);
+        using var resources = new WindowsApplicationResources();
+        Assert.IsFalse(string.IsNullOrEmpty(resources.GetDisplayName(path)));
+        using var icon = resources.GetIcon(path);
+        Assert.IsNotNull(icon);
+    }
+
+    [TestMethod]
+    [OSCondition(OperatingSystems.Windows)]
+    public void IconLookupRejectsRelativePathsAndMissingExecutables()
+    {
+        using var resources = new WindowsApplicationResources();
+        Assert.Throws<ArgumentException>(() => resources.GetIcon("relative.exe"));
         var missing = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".exe");
-        if (resources.GetDisplayName(missing) is not null || resources.GetIcon(missing) is not null)
-            throw new System.Diagnostics.UnreachableException("Missing executable produced fallback resources.");
-        using var first = resources.GetIcon(path) ?? throw new System.Diagnostics.UnreachableException("Owned executable icon unavailable.");
-        using var second = resources.GetIcon(path) ?? throw new System.Diagnostics.UnreachableException("Cached native icon unavailable.");
-        if (first.DangerousGetHandle() == second.DangerousGetHandle()) throw new System.Diagnostics.UnreachableException("Caller received a borrowed cached HICON.");
+        Assert.IsNull(resources.GetDisplayName(missing));
+        Assert.IsNull(resources.GetIcon(missing));
+    }
+
+    [TestMethod]
+    [OSCondition(OperatingSystems.Windows)]
+    public void ReturnedIconsSurviveCacheDisposal()
+    {
+        var path = Environment.ProcessPath;
+        Assert.IsNotNull(path);
+        using var resources = new WindowsApplicationResources();
+        using var first = resources.GetIcon(path);
+        using var second = resources.GetIcon(path);
+        Assert.IsNotNull(first);
+        Assert.IsNotNull(second);
+        Assert.AreNotEqual(first.DangerousGetHandle(), second.DangerousGetHandle());
         resources.Invalidate();
         resources.Dispose();
-        // CopyIcon verifies that invalidation/disposal did not destroy the caller's native resource.
+        // CopyIcon verifies that invalidation and disposal leave the caller's native resource live.
         var copy = CopyIcon(first);
-        if (copy == IntPtr.Zero) throw new System.Diagnostics.UnreachableException("SDK disposal destroyed the caller's HICON.");
+        Assert.AreNotEqual(IntPtr.Zero, copy);
         DestroyIcon(copy);
-        Console.WriteLine("Owned Windows executable metadata and independent HICON lifetime passed.");
     }
 
     [DllImport("user32.dll", ExactSpelling = true)]

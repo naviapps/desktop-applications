@@ -10,7 +10,7 @@ import unittest
 import zipfile
 from contextlib import nullcontext
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 from sdk_tooling import artifacts as artifact_operations
 from sdk_tooling import windows_delivery
@@ -147,7 +147,9 @@ class WindowsOutputTests(unittest.TestCase):
                 library.write_bytes(b"fresh SDK DLL")
                 linker = published / "desktop_applications.dll.lib"
                 linker.write_bytes(b"fresh import library")
-                (root / "mise.toml").write_text('[tools]\ndotnet = "10.0.403"\n')
+                (root / "global.json").write_text(
+                    '{"sdk":{"version":"10.0.403","rollForward":"disable"}}'
+                )
                 legacy = root / "target" / driver.TARGET / "release"
                 if stale:
                     legacy.mkdir(parents=True)
@@ -311,23 +313,43 @@ class WindowsOutputTests(unittest.TestCase):
                 )
                 self.assertEqual(c["libraries"], [candidate / linker.name])
                 self.assertEqual(c["env"]["PATH"], "owned-toolchain")
-                managed = bindings.run_managed.call_args.kwargs
+                executable = candidate / "target-app/DesktopApplications.TestTarget.exe"
+                shared_arguments = {
+                    "cwd": root,
+                    "env": env,
+                    "properties": {
+                        "RuntimeIdentifier": "win-x64",
+                        "UseAppHost": "false",
+                        "SelfContained": "false",
+                        "DesktopApplicationsNativeLibrary": str(candidate / library.name),
+                    },
+                    "verify_style": True,
+                }
                 self.assertEqual(
-                    managed["properties"]["DesktopApplicationsNativeLibrary"],
-                    str(candidate / library.name),
-                )
-                self.assertEqual(managed["properties"]["UseAppHost"], "false")
-                self.assertEqual(managed["properties"]["RuntimeIdentifier"], "win-x64")
-                self.assertEqual(
-                    managed["arguments"],
-                    [candidate / "target-app/DesktopApplications.TestTarget.exe"],
+                    bindings.run_managed.call_args_list,
+                    [
+                        call(
+                            "dotnet",
+                            root
+                            / "bindings/dotnet/tests/DesktopApplications.Tests/DesktopApplications.Tests.csproj",
+                            **shared_arguments,
+                        ),
+                        call(
+                            "dotnet",
+                            root
+                            / "fixtures/acceptance/windows/dotnet/DesktopApplications.WindowsAcceptance.csproj",
+                            arguments=[executable],
+                            nuget_config=root / "bindings/dotnet/NuGet.Config",
+                            **shared_arguments,
+                        ),
+                    ],
                 )
                 self.assertEqual(
                     [item.args for item in shared.require_pe_machine.call_args_list],
                     [
                         (candidate / library.name, "x64"),
                         (c["output"], "x64"),
-                        (managed["arguments"][0], "x64"),
+                        (executable, "x64"),
                     ],
                 )
                 self.assertEqual(artifacts.stage_native.call_args.args[0], candidate / library.name)

@@ -183,9 +183,10 @@ $tooling = (Resolve-Path ../sdk-tooling).Path
 python -I -B "$tooling/ci/run_sdk_tooling.py" python -m distribution.verify_windows
 ```
 
-The gate builds Rust and C ABI tests, runs managed contracts with an owned x64
-WinForms child, and installs the `win-x64` NuGet package in a clean consumer. The
-package and receipt go to the configured artifact directory or `.native-build/`.
+The gate builds Rust and C ABI tests, runs the MSTest suite, exercises the
+application lifecycle with an owned x64 WinForms child, and installs the `win-x64`
+NuGet package in a clean consumer. The package and receipt go to the configured
+artifact directory or `.native-build/`.
 When the artifact directory is configured, `sdk-windows/win-x64` carries the
 complete verified Windows build for later packing.
 
