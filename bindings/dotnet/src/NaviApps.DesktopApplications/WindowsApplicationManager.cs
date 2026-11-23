@@ -147,6 +147,22 @@ public sealed class WindowsApplicationManager
         internal bool HasElapsed => Remaining <= TimeSpan.Zero;
     }
 
+    private static async ValueTask<bool> WaitForNextSampleAsync(
+        PeriodicTimer timer, ObservationDeadline? deadline, CancellationToken cancellationToken)
+    {
+        if (deadline is not { } limit)
+            return await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false);
+        var remaining = limit.Remaining;
+        if (remaining <= TimeSpan.Zero) return false;
+        var nextTick = timer.WaitForNextTickAsync(cancellationToken);
+        if (remaining >= timer.Period)
+            return await nextTick.ConfigureAwait(false);
+        // Leave the next poll scheduled. Changing the period can postpone a tick that is due before the deadline.
+        var wait = TimeSpan.FromMilliseconds(Math.Ceiling(remaining.TotalMilliseconds));
+        try { return await nextTick.AsTask().WaitAsync(wait, limit.Clock, CancellationToken.None).ConfigureAwait(false); }
+        catch (TimeoutException) { return false; }
+    }
+
     private async IAsyncEnumerable<ApplicationEvent> ObserveCoreAsync(
         TimeSpan interval, ApplicationLifecycle[]? lifecycles, ApplicationIdentifier? identifier,
         ObservationDeadline? deadline, [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -155,18 +171,10 @@ public sealed class WindowsApplicationManager
         if (lifecycles is { Length: 0 } || deadline?.HasElapsed == true) yield break;
         cancellationToken.ThrowIfCancellationRequested();
         var previous = sample();
-        using var timer = new PeriodicTimer(interval);
-        while (true)
+        using var timer = new PeriodicTimer(interval, clock);
+        while (await WaitForNextSampleAsync(timer, deadline, cancellationToken).ConfigureAwait(false))
         {
-            if (deadline is { } limit)
-            {
-                var remaining = limit.Remaining;
-                if (remaining <= TimeSpan.Zero) yield break;
-                if (remaining < timer.Period)
-                    timer.Period = remaining < TimeSpan.FromMilliseconds(1) ? TimeSpan.FromMilliseconds(1) : remaining;
-            }
-            if (!await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false) || deadline?.HasElapsed == true)
-                yield break;
+            if (deadline?.HasElapsed == true) yield break;
             var current = sample();
             cancellationToken.ThrowIfCancellationRequested();
             if (deadline?.HasElapsed == true) yield break;

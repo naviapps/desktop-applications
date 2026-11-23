@@ -88,6 +88,54 @@ public sealed class ApplicationEventTests
     }
 
     [TestMethod]
+    [DataRow(125.0)]
+    [DataRow(100.25)]
+    public async Task LaunchWaitKeepsScheduledPollsBeforeTheDeadline(double deadline)
+    {
+        var clock = new ObservationClock();
+        var samples = 0;
+        var manager = new WindowsApplicationManager(() =>
+        {
+            samples++;
+            if (samples == 2) clock.AdvanceTo(90.75);
+            return samples == 3 ? Previous : ApplicationState.Empty;
+        }, clock);
+
+        var wait = manager.WaitForApplicationLaunchAsync(Target, Interval, TimeSpan.FromMilliseconds(deadline));
+        clock.AdvanceTo(50);
+        clock.AdvanceTo(99.75);
+        clock.AdvanceTo(100);
+
+        Assert.AreEqual(First, await wait.WaitAsync(Budget));
+        Assert.AreEqual(3, samples);
+        Assert.IsTrue(clock.IsIdle, "The wait left a timer active.");
+    }
+
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task CancellationOrTimeoutReleasesThePollAndDeadlineTimers(bool cancel)
+    {
+        var clock = new ObservationClock();
+        using var stopped = new CancellationTokenSource();
+        var samples = 0;
+        var manager = new WindowsApplicationManager(() =>
+        {
+            samples++;
+            return ApplicationState.Empty;
+        }, clock);
+        var wait = manager.WaitForApplicationLaunchAsync(Target, Interval, Interval / 2, stopped.Token);
+
+        Assert.IsFalse(wait.IsCompleted, "The wait returned before the deadline.");
+        if (cancel) stopped.Cancel();
+        else clock.AdvanceTo(25);
+
+        Assert.IsNull(await wait.WaitAsync(Budget));
+        Assert.AreEqual(1, samples);
+        Assert.IsTrue(clock.IsIdle, "The wait left a timer active.");
+    }
+
+    [TestMethod]
     public async Task CancellationDuringSamplingWinsOverTheMatchingEvent()
     {
         using var stopped = new CancellationTokenSource(Budget);
