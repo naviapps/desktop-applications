@@ -144,9 +144,6 @@ for installation, native loading, Windows limitations and examples.
 
 ## Development and validation
 
-This checkout contains the scripts for contributor validation and CI. SwiftPM
-and NuGet consumers can use their packages directly.
-
 Use full Xcode with Swift 6.3 or newer, macOS 26 or newer, Rust from
 `rust-toolchain.toml`, and .NET 10. Select Xcode through `DEVELOPER_DIR` if needed.
 From the SDK root, review `mise.toml`, trust that reviewed configuration, then
@@ -156,38 +153,56 @@ install the pinned tools and fetch dependencies before the validation:
 mise trust mise.toml
 mise install
 mise exec -- cargo fetch --locked
-mise exec -- "$(/usr/bin/xcrun --find make)" check
+mise exec -- cargo fetch --locked --manifest-path fixtures/windows/Cargo.toml
+mise exec -- make check
 ```
 
-The outer `mise exec` puts pinned tools on `PATH` for Make recipes and checks that
-leave the checkout. `check` runs static checks, portable build-driver regressions,
-Rust checks, tracked-framework verification, Swift tests, standalone Swift and
-macOS .NET consumers and DocC validation. `test-tools` runs only the portable
-driver checks.
+`make check` runs lint, the Rust workspace and Windows fixture tests, the managed
+.NET fixture, strict Swift tests, and a standalone SwiftPM consumer. These checks
+run from this checkout with the tools above.
+
+Public GitHub Actions runs the same Swift tests and standalone consumer on macOS 26
+with Xcode 26.6 and macOS 27 with Xcode 27.2. The public Windows x64 job runs the
+Rust workspace tests and the .NET binding fixture against a DLL built from source.
 
 ### Focused checks and consumers
 
-| Command from the repository root                                 | Evidence                                                                  |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `mise run lint`                                                  | Owned-source formatting and semantic lint                                 |
-| `mise exec -- python3 -B tools/docs.py`                          | Both DocC catalogs against package symbol graphs, with warnings as errors |
-| `mise exec -- python3 -B tools/native.py --verify`               | Tracked framework provenance and packaged bytes                           |
-| `mise exec -- make test-dotnet`                                  | Managed contracts and a fresh macOS NuGet consumer                        |
-| `mise exec -- python3 -B -m unittest discover -s tools/tests -v` | Portable build-driver regressions                                         |
+| Command from the repository root  | Evidence                                                   |
+| --------------------------------- | ---------------------------------------------------------- |
+| `mise run lint`                   | Owned-source formatting and semantic lint                  |
+| `mise exec -- make test-rust`     | Rust workspace and Windows fixture tests                   |
+| `mise exec -- make test-managed`  | Managed API contracts                                      |
+| `mise exec -- make test-consumer` | Strict build and execution of the external SwiftPM fixture |
 
 Use `mise run format` when intentionally formatting owned source. The quality
 commands skip native artifacts and the original notices under `ThirdParty/`.
-The DocC command builds Swift symbol graphs without application effects.
 
 `test-consumer` copies the installable Swift package, tests, native artifacts and
 notices into a temporary SDK tree, then builds and runs `fixtures/swift-consumer`
 as a separate package. It imports both products and exercises synthetic
 identifier normalization, caching and process validation without real OS effects.
 
-Run the independent installed clients from a clean committed checkout on owned macOS:
+### Distribution validation
+
+Set `NAVI_SDK_TOOLING_SOURCE` to the absolute path of a clean SDK Tooling checkout at the commit in [the distribution tooling pin](tools/tooling-sources.json).
+On macOS, use that environment for `make check-distribution`, `make test-tools`, `make docs`,
+`make native-verify`, `make native` and `make test-dotnet`. These commands cover the
+tracked framework and its provenance, the portable build-driver tests, both DocC
+catalogs against package symbols, and a fresh macOS NuGet consumer.
+
+Maintainers can run the macOS and Windows x64 distribution checks in SDK Tooling
+for a reviewed SDK commit on `main`.
 
 ```sh
-mise exec -- "$(/usr/bin/xcrun --find make)" test-installed-consumers
+gh workflow run check-sdk-distribution.yml -R naviapps/sdk-tooling \
+  -f sdk=desktop-applications -f revision="$(git rev-parse HEAD)"
+```
+
+To exercise the installed Rust and C clients locally, run the following from a
+clean committed checkout on owned macOS with the same tooling selection:
+
+```sh
+mise exec -- make test-installed-consumers
 ```
 
 The [Rust Git client](https://github.com/naviapps/desktop-applications/blob/main/fixtures/rust-consumer/src/main.rs)
@@ -201,7 +216,7 @@ mirror or bundle supplied through `--git-source` to `tools/install-consumers.py`
 The independent clients verify installation from a local source mirror and the
 tracked framework bytes.
 
-### Native acceptance and CI scope
+### Native acceptance
 
 Use the [owned macOS fixture guide](https://github.com/naviapps/desktop-applications/blob/main/fixtures/macos/README.md)
 for application lifecycle and opening-cancellation acceptance. Windows x64 runtime
@@ -209,19 +224,15 @@ checks can run on the existing owned isolated ARM64 worker. The
 [.NET guide](https://github.com/naviapps/desktop-applications/blob/main/bindings/dotnet/README.md#contributor-validation)
 describes its application-effects and package-consumption runner.
 
-GitHub Actions runs the same strict Swift tests and standalone Swift consumer
-on macOS 26 with Xcode 26.6 and macOS 27 with Xcode 27.2. The macOS distribution
-job checks Rust, C, .NET, documentation, and tooling. The Windows x64 job checks
-native bindings and the installed NuGet package. Use the owned fixture guides
-for separate macOS and Windows desktop lifecycle checks.
-
 ### Native artifacts and notices
 
 Rebuild after native-input changes. Install the Rust standard-library targets
-`aarch64-apple-darwin` and `x86_64-apple-darwin` for a universal rebuild, then run:
+`aarch64-apple-darwin` and `x86_64-apple-darwin` for a universal rebuild. Set
+`NAVI_SDK_TOOLING_SOURCE` as described under [distribution validation](#distribution-validation)
+and run the rebuild.
 
 ```sh
-mise exec -- "$(/usr/bin/xcrun --find make)" native
+mise exec -- make native
 ```
 
 The builder verifies source inputs, locked dependency bytes and notices, exports,

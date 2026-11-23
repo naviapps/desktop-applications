@@ -168,8 +168,13 @@ cannot be inserted back into the same cache.
 
 ## Contributor validation
 
-See [development and validation](../../README.md#development-and-validation) for pinned tools and
-portable checks. On macOS, `mise exec -- make test-dotnet` tests the managed
+See [development and validation](../../README.md#development-and-validation) for
+contributor checks. The public Windows x64 workflow runs the .NET binding fixture
+against a locally built DLL.
+
+For the packaging commands below, select the pinned SDK Tooling checkout as
+described under [distribution validation](../../README.md#distribution-validation).
+On macOS, `mise exec -- make test-dotnet` tests the managed
 contracts, packages both macOS runtime assets from the verified universal
 framework, and runs a consumer for the executing architecture. The accepted
 package is written to `.native-build/packages/`.
@@ -189,8 +194,8 @@ package and receipt go to the configured artifact directory or `.native-build/`.
 When the artifact directory is configured, `sdk-windows/win-x64` carries the
 complete verified Windows build for later packing.
 
-GitHub-hosted Windows CI uses an x64 runner to exercise native tests and the
-installed package consumer.
+The maintainer distribution workflow also exercises these native and installed
+package checks on a GitHub-hosted x64 runner.
 
 To make one package with all three assets on macOS, place the accepted Windows
 artifact directory and its native receipt from the same source build under
