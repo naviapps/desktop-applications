@@ -12,6 +12,8 @@ fn apply(cache: &ResourceCache, input: &[u8]) -> Result<serde_json::Value, Strin
 }
 
 /// Creates an independent cache; no native values or callbacks enter Rust.
+///
+/// The cache owns bounded resource identities and load generations.
 #[unsafe(no_mangle)]
 pub extern "C" fn desktop_applications_resource_cache_create() -> *mut ResourceCache {
     Box::into_raw(Box::new(ResourceCache(Mutex::new(
@@ -19,6 +21,13 @@ pub extern "C" fn desktop_applications_resource_cache_create() -> *mut ResourceC
     ))))
 }
 
+/// Resolves resources, validates or admits load generations, or invalidates by
+/// optional identifier (`resolve`, `validateLoad`, `admitLoad`, `invalidate`).
+/// A response reports only `generation`, `evictedGenerations` and `loadIsCurrent`.
+/// Detach evicted values before releasing them, since destructors may reenter the
+/// cache. Retain loads once `admitLoad` confirms their generation. Missing values
+/// are never admitted, and ready hits reuse their generation.
+///
 /// # Safety
 /// Owner stays live; input addresses length immutable readable bytes for this call.
 /// The owned result uses the ordinary buffer view/free API. Null/oversized input

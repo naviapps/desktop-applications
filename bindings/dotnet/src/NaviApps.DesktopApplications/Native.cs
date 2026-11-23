@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
@@ -15,16 +14,6 @@ internal static partial class Native
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase), new ExactStringConverter() }
     };
-    static Native() => NativeLibrary.SetDllImportResolver(typeof(Native).Assembly, Resolve);
-    private static IntPtr Resolve(string name, Assembly assembly, DllImportSearchPath? search)
-    {
-        if (name != Library) return IntPtr.Zero;
-        var explicitPath = Environment.GetEnvironmentVariable("DESKTOP_APPLICATIONS_NATIVE_LIBRARY");
-        if (explicitPath is not null) return NativeLibrary.Load(explicitPath);
-        string file = OperatingSystem.IsWindows() ? Library + ".dll" : "lib" + Library + ".dylib";
-        string packaged = Path.Combine(AppContext.BaseDirectory, "runtimes", RuntimeInformation.RuntimeIdentifier, "native", file);
-        return File.Exists(packaged) ? NativeLibrary.Load(packaged) : NativeLibrary.Load(file, assembly, search);
-    }
     [DllImport(Library, EntryPoint = "desktop_applications_abi_version", CallingConvention = CallingConvention.Cdecl)]
     private static extern uint AbiVersion();
     [DllImport(Library, EntryPoint = "desktop_applications_query", CallingConvention = CallingConvention.Cdecl)]

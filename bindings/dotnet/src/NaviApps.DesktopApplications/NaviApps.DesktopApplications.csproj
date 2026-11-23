@@ -18,6 +18,11 @@
     <None Include="../../../../LICENSE" Pack="true" PackagePath="/" />
     <InternalsVisibleTo Include="DesktopApplications.Tests" />
     <None Include="$(DesktopApplicationsRuntimeAssets)/**/*" Pack="true" PackagePath="runtimes/%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="$(DesktopApplicationsNativeLibrary)" Condition="'$(DesktopApplicationsNativeLibrary)' != ''"
+          CopyToOutputDirectory="Always" Pack="false">
+      <Link Condition="'$(OS)' == 'Windows_NT'">desktop_applications.dll</Link>
+      <Link Condition="'$(OS)' != 'Windows_NT'">libdesktop_applications.dylib</Link>
+    </None>
     <None Include="../../../../README.md" Pack="true" PackagePath="/README.md" />
     <None Include="../../../../ThirdParty/**/*" Exclude="../../../../ThirdParty/**/.DS_Store;../../../../ThirdParty/**/registry-notices.json" Pack="true" PackagePath="licenses/" />
   </ItemGroup>

@@ -12,9 +12,11 @@ mod transport_tests;
 
 pub struct Buffer(Vec<u8>);
 
+pub const DESKTOP_APPLICATIONS_ABI_VERSION: u32 = 2u32;
+
 #[unsafe(no_mangle)]
 pub extern "C" fn desktop_applications_abi_version() -> u32 {
-    2
+    DESKTOP_APPLICATIONS_ABI_VERSION
 }
 
 #[derive(Deserialize)]
@@ -176,9 +178,19 @@ fn response(result: Result<serde_json::Value, String>) -> *mut Buffer {
     )))
 }
 
+/// Operations: identifier normalization (1), recorded-target validation (2),
+/// lifecycle reconciliation (3), matching lifecycle event indices (4).
+/// Operation 4 accepts lifecycles, an optional identifier and ordered candidates
+/// with lifecycle and optional identifier. Windows operations: running apps (10),
+/// foreground app (11), process query (12), executable launch (13), activation
+/// (14), termination (15) and observation snapshot (16).
+///
+/// Input is UTF-8 JSON, at most 8 MiB. The owned result contains either `value`
+/// or `error`. Null indicates null/oversized input or a caught panic.
+///
 /// # Safety
-/// Input must address `length` readable bytes for the call. The result is owned;
-/// release it exactly once after copying any borrowed bytes.
+/// Input must address `length` readable bytes for the call. Release the result
+/// exactly once after copying any borrowed bytes.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn desktop_applications_query(
     operation: u32,
@@ -196,8 +208,9 @@ pub unsafe extern "C" fn desktop_applications_query(
 }
 
 /// # Safety
-/// `buffer` must be null or a live result returned by this library. The borrowed
-/// bytes remain valid only until that result is released.
+/// `buffer` must be null or a live result returned by this library. If `length`
+/// is nonnull and aligned, it must be writable. Copy borrowed bytes before
+/// releasing the result.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn desktop_applications_buffer_data(
     buffer: *const Buffer,

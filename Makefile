@@ -1,11 +1,13 @@
 .DEFAULT_GOAL := check
 SDK_TOOLING ?= mise run sdk-tooling --
 SWIFT_FLAGS := -Xswiftc -strict-concurrency=complete -Xswiftc -warnings-as-errors
-.PHONY: check check-source test-managed check-distribution native native-verify test test-consumer test-installed-consumers test-rust test-distribution-tools test-nuget lint docs clean
+CBINDGEN := cbindgen --config crates/ffi/cbindgen.toml crates/ffi/src/lib.rs
+C_HEADER := crates/ffi/include/desktop_applications.h
+.PHONY: check check-source test-managed check-distribution native native-verify check-header generate-header test test-consumer test-installed-consumers test-rust test-distribution-tools test-nuget lint docs clean
 check: check-source test test-consumer
 
-check-source: lint test-rust test-managed
-check-distribution: test-distribution-tools test-nuget docs
+check-source: lint check-header test-rust test-managed
+check-distribution: check-header test-distribution-tools test-nuget docs
 clean:
 	$(SDK_TOOLING) clean .build target .native-build build/docs \
 	  fixtures/consumers/swift/.build fixtures/acceptance/macos/.build fixtures/acceptance/windows/target \
@@ -13,10 +15,14 @@ clean:
 	  bindings/dotnet/tests/DesktopApplications.Tests/bin bindings/dotnet/tests/DesktopApplications.Tests/obj
 lint:
 	$(SDK_TOOLING) quality check --dotnet
-native:
+native: check-header
 	$(SDK_TOOLING) xcframework
-native-verify:
+native-verify: check-header
 	$(SDK_TOOLING) xcframework --verify
+check-header:
+	bash -o pipefail -c '$(CBINDGEN) | diff -u "$(C_HEADER)" -'
+generate-header:
+	$(CBINDGEN) --output "$(C_HEADER)"
 test:
 	swift test $(SWIFT_FLAGS)
 test-consumer:
@@ -41,5 +47,5 @@ format:
 	$(SDK_TOOLING) quality format --dotnet
 
 test-managed:
-	DESKTOP_APPLICATIONS_NATIVE_LIBRARY="$(CURDIR)/Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/CDesktopApplications" \
-		dotnet run --configuration Release --project bindings/dotnet/tests/DesktopApplications.Tests/DesktopApplications.Tests.csproj
+	dotnet run --configuration Release --project bindings/dotnet/tests/DesktopApplications.Tests/DesktopApplications.Tests.csproj \
+		-p:DesktopApplicationsNativeLibrary="$(CURDIR)/Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/CDesktopApplications"

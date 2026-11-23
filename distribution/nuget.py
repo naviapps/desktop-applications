@@ -17,7 +17,6 @@ from sdk_tooling.adapters import support_inputs
 from sdk_tooling.xcframework import xcframework
 
 PACKAGE = "NaviApps.DesktopApplications"
-OVERRIDE = "DESKTOP_APPLICATIONS_NATIVE_LIBRARY"
 MACOS_RUNTIMES = ("osx-arm64", "osx-x64")
 WINDOWS_RUNTIME = "win-x64"
 
@@ -91,7 +90,6 @@ def pack_and_consume(
             work_parent=stage,
             env=env,
             runtime=runtime,
-            clear_environment=(OVERRIDE,),
             exclude_paths=(
                 root / "target",
                 *(library.parent for library in runtime_files.values()),
@@ -150,7 +148,8 @@ def main(argv=None):
         dotnet,
         dotnet_root / "tests/DesktopApplications.Tests/DesktopApplications.Tests.csproj",
         cwd=root,
-        env=dict(env, **{OVERRIDE: str(framework)}),
+        env=env,
+        properties={"DesktopApplicationsNativeLibrary": str(framework)},
         nuget_config=dotnet_root / "NuGet.Config",
         verify_style=True,
     )

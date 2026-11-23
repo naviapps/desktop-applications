@@ -2,27 +2,23 @@
 """Build and validate Windows x64 packages on an owned Windows worker."""
 
 import argparse
-import hashlib
 import json
 import platform
 import shutil
 import subprocess
 import sys
 import tempfile
-import tomllib
 from pathlib import Path
 
-from sdk_tooling import c_compiler
 from sdk_tooling import dotnet as managed
 from sdk_tooling import vm_environment as vm
 from sdk_tooling.adapters import load, support_inputs
 from sdk_tooling.native_plan import ffi_product
+from sdk_tooling.windows_delivery import RID, TARGET, X64Acceptance
 
-from distribution.nuget import OVERRIDE, WINDOWS_RUNTIME, pack_and_consume
+from distribution.nuget import pack_and_consume
 
 ROOT = Path(__file__).resolve().parents[1]
-TARGET = "x86_64-pc-windows-msvc"
-RID = WINDOWS_RUNTIME
 
 
 def verify_retained_artifact(native):
@@ -55,11 +51,10 @@ def main(argv=None):
 
     support = support_inputs()
     windows = load("windows")
-    library = native.library + ".dll"
     artifacts_tooling = load("artifacts")
     output_dir = ROOT / ".native-build"
-    host = windows.host_architecture()
-    env, tools, dotnet = windows.native_environment(host, target_architecture="x64")
+    acceptance = X64Acceptance(ROOT)
+    env, dotnet = acceptance.env, acceptance.dotnet
     artifacts = vm.artifacts_dir(env) or output_dir
     identity = vm.source_identity(require_fingerprint=False)
     if identity is None:
@@ -68,66 +63,23 @@ def main(argv=None):
             None,
         )
     source, fingerprint = identity
-    version = subprocess.check_output([dotnet, "--version"], cwd=ROOT, env=env, text=True).strip()
-    if version != tomllib.loads((ROOT / "mise.toml").read_text())["tools"]["dotnet"]:
-        raise SystemExit("Use the pinned x64 .NET SDK from mise.toml")
-
-    def run(*args):
-        subprocess.run([str(a) for a in args], cwd=ROOT, env=env, check=True)
-
-    run("cargo", "fetch", "--locked", "--target", TARGET)
-    run("cargo", "fmt", "--all", "--", "--check")
-    built = windows.build_library(native, env, tools, "x64", native_host=host)
-    run(
-        "cargo",
-        "clippy",
-        "--workspace",
-        "--all-targets",
-        "--target",
-        TARGET,
-        "--locked",
-        "--offline",
-        "--",
-        "-D",
-        "warnings",
-    )
-    run("cargo", "test", "--workspace", "--target", TARGET, "--locked", "--offline")
+    built = acceptance.build(native)
     packages = output_dir / "packages"
     with (
         artifacts_tooling.build_lock(output_dir),
         tempfile.TemporaryDirectory(dir=output_dir, prefix="windows-x64-") as temporary,
     ):
-        directory, native_receipt = windows.verify_artifact(native, "x64", environment=env)
-        if directory != built:
-            raise ValueError("Windows DLL verification selected a different native output")
         candidate = Path(temporary)
-        dll = artifacts_tooling.stage_native(built / library, candidate / library)
-        import_library = artifacts_tooling.stage_native(
-            built / (library + ".lib"), candidate / (library + ".lib")
-        )
-        for path in (dll, import_library):
-            if (
-                hashlib.sha256(path.read_bytes()).hexdigest()
-                != native_receipt["outputs"][path.name]
-            ):
-                raise ValueError("Windows fixture input differs from its verified native receipt")
+        dll, import_library, native_receipt = acceptance.stage(native, built, candidate)
         windows.require_pe_machine(dll, "x64")
-        c_fixture = candidate / "abi.exe"
-        c_compiler.compile_c(
+        acceptance.run_c(
             ROOT / "fixtures/consumers/c/main.c",
-            output=c_fixture,
-            compiler=[tools / "cl.exe"],
-            include_dirs=[ROOT / "crates/ffi/include"],
-            libraries=[import_library],
-            style="msvc",
-            cwd=candidate,
-            env=env,
+            include_directory=ROOT / "crates/ffi/include",
+            import_library=import_library,
         )
-        windows.require_pe_machine(c_fixture, "x64")
-        run(c_fixture)
-        run_managed_fixtures(windows, dotnet, env, candidate, dll, run)
-        member = f"runtimes/{RID}/native/{library}"
-        dll_hash = native_receipt["outputs"][library]
+        run_managed_fixtures(acceptance, candidate, dll)
+        member = f"runtimes/{RID}/native/{dll.name}"
+        dll_hash = native_receipt["outputs"][dll.name]
         package_hashes = pack_and_consume(
             ROOT,
             dotnet=dotnet,
@@ -147,14 +99,14 @@ def main(argv=None):
         for name, digest in package_hashes.items():
             if packages.resolve() != artifacts.resolve():
                 shutil.copyfile(packages / name, artifacts / name)
-            if hashlib.sha256((artifacts / name).read_bytes()).hexdigest() != digest:
+            if artifacts_tooling.file_sha256(artifacts / name) != digest:
                 raise ValueError("Exported Windows package differs from the accepted package")
         receipt = {
             "source": source,
             "workspaceFingerprint": fingerprint,
             "target": TARGET,
             "runtime": RID,
-            "hostArchitecture": host,
+            "hostArchitecture": acceptance.host,
             "supportInputs": support,
             "os": platform.platform(),
             "exports": native_receipt["exports"],
@@ -171,12 +123,12 @@ def main(argv=None):
             "dllSha256": dll_hash,
         }
         artifacts_tooling.write_json(artifacts / "desktop-applications-windows.json", receipt)
-    print(f"Windows x64 desktop-applications acceptance passed on {host}.")
+    print(f"Windows x64 desktop-applications acceptance passed on {acceptance.host}.")
 
 
-def run_managed_fixtures(windows, dotnet, env, candidate, dll, run):
+def run_managed_fixtures(acceptance, candidate, dll):
     output = candidate / "fixture-build"
-    run(
+    acceptance.run(
         "cargo",
         "build",
         "--manifest-path",
@@ -192,14 +144,19 @@ def run_managed_fixtures(windows, dotnet, env, candidate, dll, run):
     executable = candidate / "target-app/DesktopApplications.TestTarget.exe"
     executable.parent.mkdir()
     shutil.copyfile(output / TARGET / "release/desktop-applications-test-target.exe", executable)
-    windows.require_pe_machine(executable, "x64")
+    load("windows").require_pe_machine(executable, "x64")
     managed.run_managed(
-        dotnet,
+        acceptance.dotnet,
         ROOT / "bindings/dotnet/tests/DesktopApplications.Tests/DesktopApplications.Tests.csproj",
         cwd=ROOT,
-        env=dict(env, **{OVERRIDE: str(dll)}),
+        env=acceptance.env,
         arguments=[executable],
-        properties={"RuntimeIdentifier": RID, "UseAppHost": "false", "SelfContained": "false"},
+        properties={
+            "RuntimeIdentifier": RID,
+            "UseAppHost": "false",
+            "SelfContained": "false",
+            "DesktopApplicationsNativeLibrary": str(dll),
+        },
         verify_style=True,
     )
 

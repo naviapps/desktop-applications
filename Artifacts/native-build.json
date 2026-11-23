@@ -1,5 +1,5 @@
 {
-  "abiVersion": 2,
+  "abiVersion": null,
   "architectures": [
     "arm64",
     "x86_64"
@@ -791,10 +791,10 @@
     "crates/core/src/lib.rs": "f5debf83ec40e30b2421ca3bdc0edc2f9c88644e201cea1fb94ebaeb1984228c",
     "crates/core/src/resources.rs": "e69af1712f30cea4e84dc139ce9762ef36e352887b17fe1eacb907810c396c91",
     "crates/ffi/Cargo.toml": "cf273572ad9da4b66eea93b41c5291df5ce47daf35b6b0198a834005cea8fca8",
-    "crates/ffi/include/desktop_applications.h": "ac25beda700a0697b7c3365ffebf24beaa9667785bb68ab96fb82d7c03f7791c",
+    "crates/ffi/include/desktop_applications.h": "0c3195e473298cf53ce5ff140eb968e576952ad347760035326cebcc1fa532d0",
     "crates/ffi/module.modulemap": "4fda91eae9ef882505b08f3f1f3d8e040f9ba5929904fafe9274d379f69c5c80",
-    "crates/ffi/src/lib.rs": "b5383e18819bbe612a922125222bc1aaff38257232bd9d055a95eef326d14402",
-    "crates/ffi/src/resource_cache.rs": "cbac57fa6224b2bae4b90545a62d595c1a8e2592fa4edbab0b1c43d04add93f7",
+    "crates/ffi/src/lib.rs": "65587a8097393fef92556c8274b50f478062206574ca4a1966d20df8de972f32",
+    "crates/ffi/src/resource_cache.rs": "e3ad19db3d2ddc736f58d2c7834170901459c0540c3e59f02abd6bfc09990eb9",
     "crates/windows/Cargo.toml": "8ffe2540685b694ac87374c104d81d6e207b56a08ba30e4aa2b4fd44d2ee3ef4",
     "crates/windows/src/lib.rs": "13c888e2f9ba39b6d6b53a2378ee12b0e43eaba3f65a6f0416d7cc4aa519f2f4",
     "native.toml": "09cde6c0b22e016dba680801dc849c7aa7883051197339ed10875007608b4e1a",
@@ -807,12 +807,12 @@
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Headers": "036ae9446c4f0c59046671d1d96e2de4f606b340d8a5c1927b2d51bc293e0365",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Modules": "278b6b2d8f8418e2e4877a67a109b6e3865174e4fa7405870a643e95cbc2f783",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Resources": "c213ee8e9c523538d862da3e5716b64bf090f6a1be08914954ae33cfbda7dbb2",
-    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/CDesktopApplications": "7e2fb769c35c63151b99bc483366771c71f78e66c69fd71221e1c837d072beda",
-    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/Headers/desktop_applications.h": "ac25beda700a0697b7c3365ffebf24beaa9667785bb68ab96fb82d7c03f7791c",
+    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/CDesktopApplications": "af8c59a9e8f05beb1df3330f4fbdddd407d3654f5be999883d0ae4f25863cf05",
+    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/Headers/desktop_applications.h": "0c3195e473298cf53ce5ff140eb968e576952ad347760035326cebcc1fa532d0",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/Modules/module.modulemap": "4fda91eae9ef882505b08f3f1f3d8e040f9ba5929904fafe9274d379f69c5c80",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/Resources/Info.plist": "e283e455781578e7e027fe55a8498699e595990bba5de0865450f6c0eeae4987",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/Resources/ThirdPartyNotices.txt": "2116a8ded0f31d28bed9fd4ceeb7eb763eb3b5cbd26da35c84147b60761678b4",
-    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/_CodeSignature/CodeResources": "e47077d1f3eefc28fec9ca4be30487fe195a2ac9e0a29a52c0a371cf9e3ea4af",
+    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/_CodeSignature/CodeResources": "127db9cf1b9b7f65bfa6e5ae5af79458ab02445abe277f02ff41f356fb39f6b3",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/Current": "ee26006c07174064a7bed9b283a8b016d74a295e05c4e23a1846538d69b23c5f"
   },
   "productionSources": [
@@ -829,6 +829,6 @@
     "crates/rustc-dep-info/src/main.rs": "0a59fb162cc855001899ad9b83875fac0ed837e73caafd116453352c9b56e2cf",
     "ffi.py": "805e7507a2a59c5c5d3edb2d654a2276ea8677ac1b755aa0dee466af87651d85",
     "native_plan.py": "126791c1993dded2be0f46784a28528d40ed1218c46d1f1aadb2c026f047dcd3",
-    "xcframework.py": "2c092ab03e898689b14b35f65897c64197f75e162272b0066912504afbdfb7f9"
+    "xcframework.py": "37d848a3d58af479b8c13c6466cef1917029e4a9709e986a66a6a4ff1e431e08"
   }
 }

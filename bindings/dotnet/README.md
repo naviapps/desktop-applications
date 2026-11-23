@@ -29,17 +29,10 @@ Keep the runtime asset in the consumer output. Shared identity and cache calls
 need native ABI 2. String inputs must be valid UTF-16. An unpaired surrogate
 raises `ArgumentException` before the input reaches native code.
 
-Native loading checks, in order:
-
-1. `DESKTOP_APPLICATIONS_NATIVE_LIBRARY`, when set, explicitly selects a library.
-2. `runtimes/<RuntimeInformation.RuntimeIdentifier>/native/` under
-   `AppContext.BaseDirectory` supplies the packaged library when present.
-3. Normal .NET native-library lookup resolves `desktop_applications.dll` on
-   Windows or `libdesktop_applications.dylib` on macOS.
-
-Use the environment override only for an explicitly selected matching library;
-remove it when validating package delivery. An ABI mismatch throws
-`InvalidOperationException`. Managed Windows operations throw
+The .NET runtime resolves the asset from the package. Source checks select the
+library with the `DesktopApplicationsNativeLibrary` MSBuild property and copy it
+beside the managed output. An ABI mismatch throws `InvalidOperationException`.
+Managed Windows operations throw
 `PlatformNotSupportedException` on other platforms.
 
 ## Query applications

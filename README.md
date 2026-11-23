@@ -88,7 +88,7 @@ that framework and does not need Rust or a source checkout.
 
 ## C ownership and failures
 
-The public [C header](https://github.com/naviapps/desktop-applications/blob/main/crates/ffi/include/desktop_applications.h) defines ABI 2.
+The generated [C header](https://github.com/naviapps/desktop-applications/blob/main/crates/ffi/include/desktop_applications.h) defines ABI 2.
 Keep headers, managed bindings and native binaries from one SDK build. Inputs
 are UTF-8 JSON, at most 8 MiB, and must remain readable for their declared
 lengths; a null/length check cannot establish arbitrary pointer validity.
@@ -223,6 +223,10 @@ checks can run on the existing owned isolated ARM64 worker. The
 describes its application-effects and package-consumption runner.
 
 ### Native artifacts and notices
+
+Run `mise exec -- make generate-header` after editing the Rust FFI declarations
+or their documentation. The header check compares the tracked file with the
+output of the pinned cbindgen generator. Consumers use the bundled header.
 
 Rebuild after native-input changes. Install the Rust standard-library targets
 `aarch64-apple-darwin` and `x86_64-apple-darwin` for a universal rebuild.

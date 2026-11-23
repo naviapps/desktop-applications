@@ -12,6 +12,9 @@ from contextlib import nullcontext
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+from sdk_tooling import artifacts as artifact_operations
+from sdk_tooling import windows_delivery
+
 from distribution import nuget
 from distribution import verify_windows as driver
 
@@ -163,9 +166,15 @@ class WindowsOutputTests(unittest.TestCase):
                 native = Mock(version="0.1.0", library="desktop_applications")
                 shared = Mock()
                 shared.host_architecture.return_value = "arm64"
+                shared.MSVC_TARGETS = {"arm64": "aarch64-pc-windows-msvc"}
                 shared.native_environment.return_value = (env, root / "msvc", "dotnet")
                 shared.build_library.return_value = published
                 native_receipt = {
+                    "toolchain": {
+                        "backend": "msvc",
+                        "host": "aarch64-pc-windows-msvc",
+                        "target": driver.TARGET,
+                    },
                     "outputs": {
                         path.name: hashlib.sha256(path.read_bytes()).hexdigest()
                         for path in (library, linker)
@@ -213,6 +222,8 @@ class WindowsOutputTests(unittest.TestCase):
                 artifacts = Mock()
                 artifacts.stage_native.side_effect = stage
                 artifacts.build_lock.side_effect = lambda path: nullcontext()
+                artifacts.hashes.side_effect = artifact_operations.hashes
+                artifacts.file_sha256.side_effect = artifact_operations.file_sha256
                 artifacts.write_json.side_effect = lambda path, data: path.write_text(
                     json.dumps(data)
                 )
@@ -242,7 +253,10 @@ class WindowsOutputTests(unittest.TestCase):
                     patch.object(driver, "support_inputs", return_value=support),
                     patch.object(nuget, "support_inputs", return_value=support),
                     patch.object(driver, "ffi_product", return_value=native),
-                    patch.multiple(driver, c_compiler=bindings, managed=bindings),
+                    patch.object(driver, "managed", bindings),
+                    patch.multiple(
+                        windows_delivery, windows=shared, artifacts=artifacts, c_compiler=bindings
+                    ),
                     patch.multiple(nuget, artifacts=artifacts, managed=bindings, packages=bindings),
                     patch.object(
                         driver,
@@ -259,7 +273,14 @@ class WindowsOutputTests(unittest.TestCase):
                 ):
                     driver.main([])
                 shared.native_environment.assert_called_once_with(
-                    "arm64", target_architecture="x64"
+                    "arm64",
+                    {
+                        "VM_RUNNER_SOURCE_COMMIT": "b" * 40,
+                        "VM_RUNNER_SOURCE_FINGERPRINT": "c" * 64,
+                    }
+                    if snapshot
+                    else {},
+                    target_architecture="x64",
                 )
                 shared.build_library.assert_called_once_with(
                     native, env, root / "msvc", "x64", native_host="arm64"
@@ -292,7 +313,7 @@ class WindowsOutputTests(unittest.TestCase):
                 self.assertEqual(c["env"]["PATH"], "owned-toolchain")
                 managed = bindings.run_managed.call_args.kwargs
                 self.assertEqual(
-                    managed["env"]["DESKTOP_APPLICATIONS_NATIVE_LIBRARY"],
+                    managed["properties"]["DesktopApplicationsNativeLibrary"],
                     str(candidate / library.name),
                 )
                 self.assertEqual(managed["properties"]["UseAppHost"], "false")
@@ -317,9 +338,7 @@ class WindowsOutputTests(unittest.TestCase):
                 consumer = bindings.run_isolated_consumer.call_args.kwargs
                 self.assertEqual(consumer["runtime"], "win-x64")
                 self.assertIn(candidate, consumer["exclude_paths"])
-                self.assertEqual(
-                    consumer["clear_environment"], ("DESKTOP_APPLICATIONS_NATIVE_LIBRARY",)
-                )
+                self.assertFalse(consumer.get("clear_environment"))
                 destination = root / ("evidence" if snapshot else ".native-build")
                 if snapshot:
                     self.assertEqual(
