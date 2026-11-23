@@ -176,11 +176,11 @@ package is written to `.native-build/packages/`.
 
 Use native ARM64 Python, Rust and MSVC on an owned Windows 11 ARM64 worker. Install
 the `x86_64-pc-windows-msvc` Rust standard library and the x64 .NET SDK pinned in
-`mise.toml`. Set `DOTNET_BIN` to the x64 executable's absolute path. Select the
-reviewed SDK Tooling checkout and its full commit for the Windows x64 gate:
+`mise.toml`. Set `DOTNET_BIN` to the x64 executable's absolute path. Run the
+Windows x64 gate from this checkout.
 
 ```powershell
-python -B tools/windows.py --tooling-source $tooling --tooling-revision $commit
+python -B tools/windows.py
 ```
 
 The gate builds Rust and C ABI tests, runs managed contracts with an owned x64
@@ -190,16 +190,16 @@ When the artifact directory is configured, `sdk-windows/win-x64` carries the
 complete verified Windows build for later packing.
 
 GitHub-hosted Windows CI uses an x64 runner to exercise native tests and the
-installed package consumer using the pinned tooling.
+installed package consumer.
 
 To make one package with all three assets on macOS, place the accepted Windows
 artifact directory and its native receipt from the same source build under
-`.native-build/windows/win-x64/`. Pass the exact Windows tooling checkout separately:
+`.native-build/windows/win-x64/`.
 
 ```sh
-mise exec -- python3 -B tools/nuget.py --include-windows --tooling-source "$tooling" --tooling-revision "$commit"
+mise exec -- python3 -B tools/nuget.py --include-windows
 ```
 
-This verifies the Windows DLL against its receipt, verifies the macOS framework
-with the repository pin, and runs the packaged macOS consumer. Use a local feed
-or private distribution. Choose one build for a given package ID and version.
+This verifies the Windows DLL and macOS framework against their respective
+receipts and runs the packaged macOS consumer. Use a local feed or private
+distribution. Choose one build for a given package ID and version.

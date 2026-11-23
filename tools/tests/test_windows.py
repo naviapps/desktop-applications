@@ -62,11 +62,53 @@ class WindowsOutputTests(unittest.TestCase):
                     version="0.1.0",
                     output=root / "output",
                     runtime_files={member: library},
+                    reviewed_support={},
                     runtime="win-x64",
                     verified_hashes={member: digest},
                 )
             bindings.run_isolated_consumer.assert_not_called()
             self.assertFalse(any((root / "output").iterdir()))
+
+    def test_nuget_preserves_the_previous_package_if_support_changes_during_acceptance(self):
+        tools = Path(__file__).resolve().parents[1]
+        with patch.object(sys, "path", [str(tools), *sys.path]):
+            import nuget
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            consumer = root / "bindings/dotnet/tests/PackageConsumer/Program.cs"
+            consumer.parent.mkdir(parents=True)
+            consumer.write_text("")
+            package = root / "output/NaviApps.DesktopApplications.0.1.0.nupkg"
+            package.parent.mkdir()
+            package.write_bytes(b"previous package")
+            bindings = Mock()
+            bindings.pack_project.side_effect = lambda dotnet, project, *, output, **options: (
+                output / package.name
+            ).write_bytes(b"new package")
+            bindings.audit_package.return_value = hashlib.sha256(b"new package").hexdigest()
+            support = {"tools/vendor/sdk_tooling/bindings.py": "a" * 64}
+            reviewed_support = support.copy()
+
+            def consume(*args, **kwargs):
+                support["tools/vendor/sdk_tooling/bindings.py"] = "b" * 64
+
+            bindings.run_isolated_consumer.side_effect = consume
+            with (
+                patch.object(nuget, "support_inputs", side_effect=lambda: support.copy()),
+                self.assertRaisesRegex(ValueError, "SDK support sources changed"),
+            ):
+                nuget.pack_and_consume(
+                    root,
+                    bindings=bindings,
+                    dotnet="dotnet",
+                    env={},
+                    version="0.1.0",
+                    output=package.parent,
+                    runtime_files={},
+                    reviewed_support=reviewed_support,
+                )
+            self.assertEqual(package.read_bytes(), b"previous package")
 
     def test_redirected_build_cannot_consume_missing_or_stale_legacy_output(self):
         tools = Path(__file__).resolve().parents[1]
@@ -161,6 +203,7 @@ class WindowsOutputTests(unittest.TestCase):
                 artifacts.write_json.side_effect = lambda path, data: path.write_text(
                     json.dumps(data)
                 )
+                support = {"tools/vendor/sdk_tooling/bindings.py": "d" * 64}
 
                 def check_output(command, **options):
                     if command == ["dotnet", "--version"]:
@@ -180,9 +223,8 @@ class WindowsOutputTests(unittest.TestCase):
                     ),
                     patch.object(driver, "ROOT", root),
                     patch.object(sys, "platform", "win32"),
-                    patch.object(driver, "select_candidate"),
-                    patch.object(driver, "verify_candidate"),
-                    patch("nuget.verify_candidate"),
+                    patch.object(driver, "support_inputs", return_value=support),
+                    patch("nuget.support_inputs", return_value=support),
                     patch.object(driver, "builder", return_value=native),
                     patch.object(
                         driver,
@@ -198,7 +240,7 @@ class WindowsOutputTests(unittest.TestCase):
                     patch.object(driver.platform, "platform", return_value="mock Windows ARM64"),
                     patch("builtins.print"),
                 ):
-                    driver.main(["--tooling-source", str(root), "--tooling-revision", "d" * 40])
+                    driver.main([])
                 shared.native_environment.assert_called_once_with(
                     "arm64", target_architecture="x64"
                 )
@@ -273,6 +315,7 @@ class WindowsOutputTests(unittest.TestCase):
                 self.assertEqual(receipt["source"], ("b" if snapshot else "a") * 40)
                 self.assertEqual(receipt["hostArchitecture"], "arm64")
                 self.assertEqual(receipt["runtime"], "win-x64")
+                self.assertEqual(receipt["supportInputs"], support)
                 self.assertEqual(receipt["workspaceFingerprint"], "c" * 64 if snapshot else "")
                 self.assertEqual(
                     receipt["dllSha256"], hashlib.sha256(library.read_bytes()).hexdigest()

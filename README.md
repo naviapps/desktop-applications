@@ -144,10 +144,8 @@ for installation, native loading, Windows limitations and examples.
 
 ## Development and validation
 
-Contributor commands use the immutable `sdk-tooling` revision in
-`tools/tooling-sources.json`. See [shared developer setup](https://github.com/naviapps/sdk-tooling#readme)
-for verified caches, offline use and source overrides. Ordinary SDK consumers do
-not need this setup.
+This checkout contains the scripts for contributor validation and CI. SwiftPM
+and NuGet consumers can use their packages directly.
 
 Use full Xcode with Swift 6.3 or newer, macOS 26 or newer, Rust from
 `rust-toolchain.toml`, and .NET 10. Select Xcode through `DEVELOPER_DIR` if needed.
@@ -177,10 +175,9 @@ driver checks.
 | `mise exec -- make test-dotnet`                                  | Managed contracts and a fresh macOS NuGet consumer                        |
 | `mise exec -- python3 -B -m unittest discover -s tools/tests -v` | Portable build-driver regressions                                         |
 
-Use `mise run format` when intentionally formatting owned source. The shared
-[quality guide](https://github.com/naviapps/sdk-tooling/blob/main/docs/REFERENCE.md#quality-and-documentation-checks)
-explains the common policy, including vendor, artifact and original-notice
-exclusions. The DocC command builds Swift symbol graphs without application effects.
+Use `mise run format` when intentionally formatting owned source. The quality
+commands skip native artifacts and the original notices under `ThirdParty/`.
+The DocC command builds Swift symbol graphs without application effects.
 
 `test-consumer` copies the installable Swift package, tests, native artifacts and
 notices into a temporary SDK tree, then builds and runs `fixtures/swift-consumer`
@@ -201,9 +198,8 @@ compiles against a copy of the tracked framework and notices. Both exercise
 synthetic normalization, stale-target rejection and cache invalidation without
 discovering or controlling applications. A shallow checkout needs a complete local
 mirror or bundle supplied through `--git-source` to `tools/install-consumers.py`.
-This checks local Git delivery without remote authentication or native rebuilding;
-see the shared [consumer guide](https://github.com/naviapps/sdk-tooling/blob/main/docs/REFERENCE.md#consumer-verification)
-for the isolation mechanism.
+The independent clients verify installation from a local source mirror and the
+tracked framework bytes.
 
 ### Native acceptance and CI scope
 
@@ -229,9 +225,8 @@ mise exec -- "$(/usr/bin/xcrun --find make)" native
 ```
 
 The builder verifies source inputs, locked dependency bytes and notices, exports,
-deployment target and packaged output hashes. See the shared
-[native artifact guide](https://github.com/naviapps/sdk-tooling/blob/main/docs/REFERENCE.md#native-artifacts-and-provenance)
-for that mechanism. Preserve tracked artifacts and their provenance when distributing.
+deployment target and packaged output hashes. Preserve tracked artifacts and
+`Artifacts/native-build.json` when distributing.
 
 The framework retains verbatim notice bodies in `Resources/ThirdPartyNotices.txt`.
 Original notices and Rust runtime provenance remain under `ThirdParty/`; NuGet

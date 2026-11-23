@@ -13,7 +13,7 @@ import tempfile
 import tomllib
 from pathlib import Path
 
-from _tooling import add_candidate_options, load, select_candidate, verify_candidate
+from _tooling import load, support_inputs
 from native import builder
 from nuget import OVERRIDE, WINDOWS_RUNTIME, pack_and_consume
 
@@ -24,7 +24,6 @@ RID = WINDOWS_RUNTIME
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
-    add_candidate_options(parser, required=True)
     parser.add_argument(
         "--verify-artifact",
         action="store_true",
@@ -33,7 +32,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if not args.verify_artifact and sys.platform != "win32":
         parser.error("Use an owned Windows worker for runtime acceptance")
-    select_candidate(parser, args)
+    support = support_inputs()
     windows = load("windows")
     native = builder()
     library = native.library + ".dll"
@@ -43,7 +42,8 @@ def main(argv=None):
         with artifacts_tooling.build_lock(output_dir):
             directory, receipt = windows.verify_artifact(native, "x64")
             windows.require_pe_machine(directory / library, "x64")
-            verify_candidate()
+            if support_inputs() != support:
+                raise ValueError("SDK support sources changed during Windows artifact verification")
         print(json.dumps({"dllSha256": receipt["outputs"][library]}))
         return
 
@@ -120,7 +120,10 @@ def main(argv=None):
             runtime_files={member: dll},
             runtime=RID,
             verified_hashes={member: dll_hash},
+            reviewed_support=support,
         )
+        if support_inputs() != support:
+            raise ValueError("SDK support sources changed during Windows acceptance")
         artifacts = Path(env["NAVI_CI_ARTIFACTS"]) if env.get("NAVI_CI_ARTIFACTS") else output_dir
         artifacts.mkdir(parents=True, exist_ok=True)
         if artifacts.resolve() != output_dir.resolve():
@@ -137,7 +140,7 @@ def main(argv=None):
             "target": TARGET,
             "runtime": RID,
             "hostArchitecture": host,
-            "toolingRevision": args.tooling_revision,
+            "supportInputs": support,
             "os": platform.platform(),
             "exports": native_receipt["exports"],
             "run": env.get("GITHUB_RUN_ID"),

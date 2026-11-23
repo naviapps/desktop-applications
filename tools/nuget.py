@@ -12,7 +12,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from _tooling import add_candidate_options, load, verify_candidate
+from _tooling import load, support_inputs
 from native import builder
 
 PACKAGE = "NaviApps.DesktopApplications"
@@ -30,6 +30,7 @@ def pack_and_consume(
     version,
     output,
     runtime_files,
+    reviewed_support,
     runtime=None,
     verified_hashes=None,
 ):
@@ -97,7 +98,8 @@ def pack_and_consume(
             ),
             properties={"Nullable": "enable", "TreatWarningsAsErrors": "true"},
         )
-        verify_candidate()
+        if support_inputs() != reviewed_support:
+            raise ValueError("SDK support sources changed during NuGet acceptance")
         if hashlib.sha256(package.read_bytes()).hexdigest() != digest:
             raise ValueError("NuGet package changed during isolated acceptance")
         os.replace(package, output / name)
@@ -106,23 +108,16 @@ def pack_and_consume(
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
-    add_candidate_options(parser)
     parser.add_argument(
         "--include-windows",
         action="store_true",
         help="Also package a verified win-x64 DLL from this checkout",
     )
     args = parser.parse_args(argv)
-    if args.include_windows:
-        if args.tooling_source is None or args.tooling_revision is None:
-            parser.error(
-                "--include-windows requires the exact Windows tooling checkout and revision"
-            )
-    elif args.tooling_source is not None or args.tooling_revision is not None:
-        parser.error("Candidate tooling options require --include-windows")
     if sys.platform != "darwin":
         raise SystemExit("Use tools/windows.py to produce x64 packages on an owned Windows worker.")
 
+    support = support_inputs()
     env = dict(
         os.environ,
         DOTNET_CLI_TELEMETRY_OPTOUT="1",
@@ -144,17 +139,12 @@ def main(argv=None):
     }
     verified_hashes = {}
     if args.include_windows:
-        # The Windows and pinned macOS receipts can use different tooling revisions.
         result = subprocess.check_output(
             [
                 sys.executable,
                 "-B",
                 root / "tools/windows.py",
                 "--verify-artifact",
-                "--tooling-source",
-                str(args.tooling_source.resolve()),
-                "--tooling-revision",
-                args.tooling_revision,
             ],
             cwd=root,
             text=True,
@@ -183,6 +173,7 @@ def main(argv=None):
         output=output,
         runtime_files=runtime_files,
         verified_hashes=verified_hashes,
+        reviewed_support=support,
     ):
         print(f"Verified local package: {output / name}")
 
