@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <PackageId>NaviApps.DesktopApplications</PackageId>
+    <Version>0.1.0</Version>
+    <Description>Application identity, lifecycle reconciliation and native Windows application management.</Description>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PublishRepositoryUrl>false</PublishRepositoryUrl>
+    <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <DesktopApplicationsRuntimeAssets Condition="'$(DesktopApplicationsRuntimeAssets)' == ''">../../runtimes</DesktopApplicationsRuntimeAssets>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="../../../../LICENSE" Pack="true" PackagePath="/" />
+    <InternalsVisibleTo Include="DesktopApplications.Tests" />
+    <None Include="$(DesktopApplicationsRuntimeAssets)/**/*" Pack="true" PackagePath="runtimes/%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="../../../../README.md" Pack="true" PackagePath="/README.md" />
+    <None Include="../../../../ThirdParty/**/*" Exclude="../../../../ThirdParty/**/.DS_Store;../../../../ThirdParty/**/registry-notices.json" Pack="true" PackagePath="licenses/" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PathMap>$(MSBuildProjectDirectory)=/desktop-applications/bindings/dotnet/src/$(MSBuildProjectName)</PathMap>
+  </PropertyGroup>
+</Project>

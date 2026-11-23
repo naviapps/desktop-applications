@@ -1,0 +1,284 @@
+"""SDK acceptance consumes the shared builder's output, including redirected Cargo builds."""
+
+import hashlib
+import importlib.util
+import json
+import os
+import sys
+import tempfile
+import tomllib
+import unittest
+import zipfile
+from contextlib import nullcontext
+from pathlib import Path
+from unittest.mock import Mock, patch
+
+
+class WindowsOutputTests(unittest.TestCase):
+    def test_fixture_uses_the_registry_inputs_fetched_for_the_sdk(self):
+        root = Path(__file__).resolve().parents[2]
+
+        def registry(path):
+            return {
+                (package["name"], package["version"], package["checksum"])
+                for package in tomllib.loads((root / path).read_text())["package"]
+                if package.get("source", "").startswith("registry+")
+            }
+
+        self.assertEqual(registry("fixtures/windows/Cargo.lock") - registry("Cargo.lock"), set())
+
+    def test_nuget_checks_the_windows_receipt_digest_before_running_the_consumer(self):
+        tools = Path(__file__).resolve().parents[1]
+        with patch.object(sys, "path", [str(tools), *sys.path]):
+            import nuget
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            library = root / "desktop_applications.dll"
+            library.write_bytes(b"accepted DLL")
+            member = "runtimes/win-x64/native/desktop_applications.dll"
+            digest = hashlib.sha256(library.read_bytes()).hexdigest()
+            bindings = Mock()
+
+            def stage(source, destination):
+                destination.parent.mkdir(parents=True)
+                destination.write_bytes(source.read_bytes())
+                return destination
+
+            def pack(dotnet, project, *, output, **options):
+                with zipfile.ZipFile(
+                    output / "NaviApps.DesktopApplications.0.1.0.nupkg", "w"
+                ) as archive:
+                    archive.writestr(member, b"different package DLL")
+
+            bindings.stage_native.side_effect = stage
+            bindings.pack_project.side_effect = pack
+            with self.assertRaisesRegex(ValueError, "Packaged runtime asset differs"):
+                nuget.pack_and_consume(
+                    root,
+                    bindings=bindings,
+                    dotnet="dotnet",
+                    env={},
+                    version="0.1.0",
+                    output=root / "output",
+                    runtime_files={member: library},
+                    runtime="win-x64",
+                    verified_hashes={member: digest},
+                )
+            bindings.run_isolated_consumer.assert_not_called()
+            self.assertFalse(any((root / "output").iterdir()))
+
+    def test_redirected_build_cannot_consume_missing_or_stale_legacy_output(self):
+        tools = Path(__file__).resolve().parents[1]
+        spec = importlib.util.spec_from_file_location(
+            "desktop_applications_windows", tools / "windows.py"
+        )
+        driver = importlib.util.module_from_spec(spec)
+        with patch.object(sys, "path", [str(tools), *sys.path]):
+            spec.loader.exec_module(driver)
+        for stale, snapshot in ((False, False), (True, False), (False, True), (True, True)):
+            with (
+                self.subTest(stale_legacy_output=stale, captured_workspace=snapshot),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                root = Path(temporary)
+                redirected = root / "redirected-cargo"
+                published = root / ".native-build/accepted"
+                published.mkdir(parents=True)
+                library = published / "desktop_applications.dll"
+                library.write_bytes(b"fresh SDK DLL")
+                linker = published / "desktop_applications.dll.lib"
+                linker.write_bytes(b"fresh import library")
+                (root / "mise.toml").write_text('[tools]\ndotnet = "10.0.403"\n')
+                legacy = root / "target" / driver.TARGET / "release"
+                if stale:
+                    legacy.mkdir(parents=True)
+                    (legacy / library.name).write_bytes(b"stale SDK DLL")
+                consumer = root / "bindings/dotnet/tests/PackageConsumer/Program.cs"
+                consumer.parent.mkdir(parents=True)
+                consumer.write_bytes(
+                    (tools.parent / "bindings/dotnet/tests/PackageConsumer/Program.cs").read_bytes()
+                )
+                unselected = root / "bindings/dotnet/runtimes/osx-arm64/native"
+                unselected.mkdir(parents=True)
+                (unselected / "libdesktop_applications.dylib").write_bytes(b"stale Mac library")
+                env = {"CARGO_TARGET_DIR": str(redirected), "PATH": "owned-toolchain"}
+                if snapshot:
+                    env["NAVI_CI_ARTIFACTS"] = str(root / "evidence")
+                native = Mock(version="0.1.0", library="desktop_applications")
+                shared = Mock()
+                shared.host_architecture.return_value = "arm64"
+                shared.native_environment.return_value = (env, root / "msvc", "dotnet")
+                shared.build_library.return_value = published
+                native_receipt = {
+                    "outputs": {
+                        path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                        for path in (library, linker)
+                    },
+                    "exports": ["desktop_applications_abi_version"],
+                }
+                shared.verify_artifact.return_value = published, native_receipt
+                (published / "native-build.json").write_text(json.dumps(native_receipt))
+
+                bindings = Mock()
+
+                def stage(source, destination):
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    destination.write_bytes(source.read_bytes())
+                    return destination
+
+                def pack(dotnet, project, *, output, **options):
+                    assets = options["properties"]["DesktopApplicationsRuntimeAssets"]
+                    self.assertEqual(
+                        [
+                            path.relative_to(assets).as_posix()
+                            for path in assets.rglob("*")
+                            if path.is_file()
+                        ],
+                        ["win-x64/native/desktop_applications.dll"],
+                    )
+                    with zipfile.ZipFile(
+                        output / "NaviApps.DesktopApplications.0.1.0.nupkg", "w"
+                    ) as archive:
+                        asset = "win-x64/native/desktop_applications.dll"
+                        archive.write(assets / asset, "runtimes/" + asset)
+
+                bindings.stage_native.side_effect = stage
+                bindings.pack_project.side_effect = pack
+                bindings.audit_package.side_effect = lambda path, **_: hashlib.sha256(
+                    path.read_bytes()
+                ).hexdigest()
+
+                def run(command, **_):
+                    if command[:2] == ["cargo", "build"]:
+                        output = Path(command[command.index("--target-dir") + 1])
+                        target = output / driver.TARGET / "release"
+                        target.mkdir(parents=True)
+                        (target / "desktop-applications-test-target.exe").write_bytes(b"fixture")
+
+                artifacts = Mock()
+                artifacts.build_lock.side_effect = lambda path: nullcontext()
+                artifacts.write_json.side_effect = lambda path, data: path.write_text(
+                    json.dumps(data)
+                )
+
+                def check_output(command, **options):
+                    if command == ["dotnet", "--version"]:
+                        return "10.0.403\n"
+                    self.assertEqual(command, ["git", "rev-parse", "HEAD"])
+                    if snapshot:
+                        raise AssertionError("Captured workspaces have no Git metadata")
+                    return "a" * 40
+
+                with (
+                    patch.dict(
+                        os.environ,
+                        {
+                            "NAVI_CI_SOURCE_COMMIT": "b" * 40 if snapshot else "",
+                            "NAVI_CI_SOURCE_FINGERPRINT": "c" * 64 if snapshot else "",
+                        },
+                    ),
+                    patch.object(driver, "ROOT", root),
+                    patch.object(sys, "platform", "win32"),
+                    patch.object(driver, "select_candidate"),
+                    patch.object(driver, "verify_candidate"),
+                    patch("nuget.verify_candidate"),
+                    patch.object(driver, "builder", return_value=native),
+                    patch.object(
+                        driver,
+                        "load",
+                        side_effect={
+                            "windows": shared,
+                            "bindings": bindings,
+                            "artifacts": artifacts,
+                        }.get,
+                    ),
+                    patch.object(driver.subprocess, "run", side_effect=run) as commands,
+                    patch.object(driver.subprocess, "check_output", side_effect=check_output),
+                    patch.object(driver.platform, "platform", return_value="mock Windows ARM64"),
+                    patch("builtins.print"),
+                ):
+                    driver.main(["--tooling-source", str(root), "--tooling-revision", "d" * 40])
+                shared.native_environment.assert_called_once_with(
+                    "arm64", target_architecture="x64"
+                )
+                shared.build_library.assert_called_once_with(
+                    native, env, root / "msvc", "x64", native_host="arm64"
+                )
+                self.assertEqual(env["CARGO_TARGET_DIR"], str(redirected))
+                shared.verify_artifact.assert_called_once_with(native, "x64", environment=env)
+                c = bindings.compile_c.call_args.kwargs
+                candidate = c["output"].parent
+                builds = [
+                    call.args[0]
+                    for call in commands.call_args_list
+                    if call.args[0][:2] == ["cargo", "build"]
+                ]
+                self.assertEqual(len(builds), 1)
+                self.assertEqual(
+                    builds[0][2:],
+                    [
+                        "--manifest-path",
+                        str(root / "fixtures/windows/Cargo.toml"),
+                        "--target",
+                        driver.TARGET,
+                        "--target-dir",
+                        str(candidate / "fixture-build"),
+                        "--release",
+                        "--locked",
+                        "--offline",
+                    ],
+                )
+                self.assertEqual(c["libraries"], [candidate / linker.name])
+                self.assertEqual(c["env"]["PATH"], "owned-toolchain")
+                managed = bindings.run_managed.call_args.kwargs
+                self.assertEqual(
+                    managed["env"]["DESKTOP_APPLICATIONS_NATIVE_LIBRARY"],
+                    str(candidate / library.name),
+                )
+                self.assertEqual(managed["properties"]["UseAppHost"], "false")
+                self.assertEqual(managed["properties"]["RuntimeIdentifier"], "win-x64")
+                self.assertEqual(
+                    managed["arguments"],
+                    [candidate / "target-app/DesktopApplications.TestTarget.exe"],
+                )
+                self.assertEqual(
+                    [item.args for item in shared.require_pe_machine.call_args_list],
+                    [
+                        (candidate / library.name, "x64"),
+                        (c["output"], "x64"),
+                        (managed["arguments"][0], "x64"),
+                    ],
+                )
+                self.assertEqual(bindings.stage_native.call_args.args[0], candidate / library.name)
+                self.assertEqual(
+                    tuple(bindings.audit_package.call_args.kwargs["runtime_files"]),
+                    ("runtimes/win-x64/native/desktop_applications.dll",),
+                )
+                consumer = bindings.run_isolated_consumer.call_args.kwargs
+                self.assertEqual(consumer["runtime"], "win-x64")
+                self.assertIn(candidate, consumer["exclude_paths"])
+                self.assertEqual(
+                    consumer["clear_environment"], ("DESKTOP_APPLICATIONS_NATIVE_LIBRARY",)
+                )
+                destination = root / ("evidence" if snapshot else ".native-build")
+                if snapshot:
+                    self.assertEqual(
+                        (destination / "sdk-windows/win-x64" / library.name).read_bytes(),
+                        library.read_bytes(),
+                    )
+                receipt = json.loads(
+                    (destination / "desktop-applications-windows.json").read_text()
+                )
+                self.assertEqual(receipt["source"], ("b" if snapshot else "a") * 40)
+                self.assertEqual(receipt["hostArchitecture"], "arm64")
+                self.assertEqual(receipt["runtime"], "win-x64")
+                self.assertEqual(receipt["workspaceFingerprint"], "c" * 64 if snapshot else "")
+                self.assertEqual(
+                    receipt["dllSha256"], hashlib.sha256(library.read_bytes()).hexdigest()
+                )
+                self.assertEqual(receipt["exports"], ["desktop_applications_abi_version"])
+
+
+if __name__ == "__main__":
+    unittest.main()
