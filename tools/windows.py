@@ -24,7 +24,7 @@ RID = WINDOWS_RUNTIME
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
-    add_candidate_options(parser)
+    add_candidate_options(parser, required=True)
     parser.add_argument(
         "--verify-artifact",
         action="store_true",
