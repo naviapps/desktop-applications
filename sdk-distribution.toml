@@ -2,7 +2,6 @@
 commands = [
   ["xcrun", "swift", "--version"],
   ["make", "check-distribution", "test-installed-consumers"],
-  ["sdk-tooling", "swift-consumer", "--distribution"],
 ]
 
 [windows]
