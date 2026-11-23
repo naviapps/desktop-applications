@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
@@ -36,10 +35,15 @@ public sealed class WindowsApplicationManager
 {
     private static readonly EmptyRequest Empty = new();
     private readonly Func<ApplicationState> sample;
+    private readonly TimeProvider clock;
 
     public WindowsApplicationManager() : this(() => Native.Decode<ApplicationState>(Call(16, Empty))) { }
 
-    internal WindowsApplicationManager(Func<ApplicationState> sample) => this.sample = sample;
+    internal WindowsApplicationManager(Func<ApplicationState> sample, TimeProvider? clock = null)
+    {
+        this.sample = sample;
+        this.clock = clock ?? TimeProvider.System;
+    }
 
     private static JsonElement Call<T>(uint operation, T input)
     {
@@ -95,7 +99,7 @@ public sealed class WindowsApplicationManager
         TimeSpan? timeout = null, CancellationToken cancellationToken = default)
     {
         if (cancellationToken.IsCancellationRequested || timeout <= TimeSpan.Zero) return null;
-        ObservationDeadline? deadline = timeout is { } limit ? new(Stopwatch.GetTimestamp(), limit) : null;
+        ObservationDeadline? deadline = timeout is { } limit ? new(clock, clock.GetTimestamp(), limit) : null;
         ArgumentNullException.ThrowIfNull(identifier);
         if (!Enum.IsDefined(lifecycle)) throw new ArgumentOutOfRangeException(nameof(lifecycle));
         try { identifier = ApplicationIdentifier.Create(identifier.Kind, identifier.Value); }
@@ -137,9 +141,9 @@ public sealed class WindowsApplicationManager
             yield return item.Application;
     }
 
-    private readonly record struct ObservationDeadline(long Started, TimeSpan Timeout)
+    private readonly record struct ObservationDeadline(TimeProvider Clock, long Started, TimeSpan Timeout)
     {
-        internal TimeSpan Remaining => Timeout - Stopwatch.GetElapsedTime(Started);
+        internal TimeSpan Remaining => Timeout - Clock.GetElapsedTime(Started);
         internal bool HasElapsed => Remaining <= TimeSpan.Zero;
     }
 

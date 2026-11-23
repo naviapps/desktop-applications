@@ -67,6 +67,27 @@ public sealed class ApplicationEventTests
     }
 
     [TestMethod]
+    [DataRow(-1, true)]
+    [DataRow(0, false)]
+    [DataRow(1, false)]
+    public async Task LaunchWaitChecksDeadlineAfterMatchingSample(int ticksFromDeadline, bool expectedMatch)
+    {
+        var clock = new SampleClock();
+        var samples = 0;
+        var manager = new WindowsApplicationManager(() =>
+        {
+            if (samples++ == 0) return ApplicationState.Empty;
+            clock.Timestamp = Budget.Ticks + ticksFromDeadline;
+            return Previous;
+        }, clock);
+
+        var result = await manager.WaitForApplicationLaunchAsync(Target, Interval, Budget).WaitAsync(Budget);
+
+        Assert.AreEqual(expectedMatch ? First : null, result);
+        Assert.AreEqual(2, samples);
+    }
+
+    [TestMethod]
     public async Task CancellationDuringSamplingWinsOverTheMatchingEvent()
     {
         using var stopped = new CancellationTokenSource(Budget);
@@ -85,5 +106,12 @@ public sealed class ApplicationEventTests
     {
         var index = 0;
         return new WindowsApplicationManager(() => states[Math.Min(index++, states.Length - 1)]);
+    }
+
+    private sealed class SampleClock : TimeProvider
+    {
+        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+        internal long Timestamp { get; set; }
+        public override long GetTimestamp() => Timestamp;
     }
 }
