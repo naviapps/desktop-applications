@@ -21,8 +21,6 @@ jobs:
           persist-credentials: false
       - uses: naviapps/sdk-tooling/.github/actions/test-rust-windows@main
         with:
-          managed-project: bindings/dotnet/tests/DesktopApplications.Tests/DesktopApplications.Tests.csproj
-          native-package: desktop-applications-ffi
-          native-property: DesktopApplicationsNativeLibrary
+          test-bindings: "true"
       - name: Test the Windows application fixture
         run: cargo test --locked --manifest-path fixtures/acceptance/windows/Cargo.toml

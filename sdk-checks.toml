@@ -9,3 +9,7 @@ rust_packages = ["desktop-applications"]
 [rust_c.c]
 framework = "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework"
 header = "desktop_applications.h"
+
+[windows_bindings]
+packages = ["desktop-applications-ffi"]
+projects = ["bindings/dotnet/tests/DesktopApplications.Tests/DesktopApplications.Tests.csproj"]
