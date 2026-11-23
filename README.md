@@ -34,7 +34,7 @@ A minimal consumer `Package.swift` can select both public products. Replace
 these products:
 
 ```swift
-// swift-tools-version: 6.4
+// swift-tools-version: 6.3
 import PackageDescription
 
 let package = Package(
@@ -149,7 +149,7 @@ Contributor commands use the immutable `sdk-tooling` revision in
 for verified caches, offline use and source overrides. Ordinary SDK consumers do
 not need this setup.
 
-Use full Xcode with Swift 6.4 and macOS 26 or newer, Rust from
+Use full Xcode with Swift 6.3 or newer, macOS 26 or newer, Rust from
 `rust-toolchain.toml`, and .NET 10. Select Xcode through `DEVELOPER_DIR` if needed.
 From the SDK root, review `mise.toml`, trust that reviewed configuration, then
 install the pinned tools and fetch dependencies before the validation:
@@ -213,8 +213,8 @@ checks can run on the existing owned isolated ARM64 worker. The
 [.NET guide](https://github.com/naviapps/desktop-applications/blob/main/bindings/dotnet/README.md#contributor-validation)
 describes its application-effects and package-consumption runner.
 
-GitHub Actions runs Rust and strict Swift tests on Xcode 27 and Rust and tooling
-tests on Windows x64. CI also exercises standalone language consumers and the
+GitHub Actions runs the full macOS SDK checks with Xcode 27, strict Swift tests
+with Xcode 26.6 on macOS 26, and Rust and tooling tests on Windows x64. CI also exercises standalone language consumers and the
 installed Windows NuGet package. Use the owned fixture guides for separate macOS
 and Windows desktop lifecycle checks.
 
