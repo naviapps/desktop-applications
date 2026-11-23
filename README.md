@@ -211,7 +211,7 @@ fetch. The [C client](fixtures/consumers/c/main.c)
 compiles against a copy of the tracked framework and notices. Both exercise
 synthetic normalization, stale-target rejection and cache invalidation without
 discovering or controlling applications. A shallow checkout needs a complete local
-mirror or bundle. Run `mise run sdk-tooling -- installed-consumers --git-source <path>`
+mirror or bundle. Run `mise run sdk-tooling -- rust-c-consumers --git-source <path>`
 to use that source.
 
 ### Native acceptance

@@ -14,7 +14,7 @@ from sdk_tooling import artifacts
 from sdk_tooling import dotnet as managed
 from sdk_tooling import nuget as packages
 from sdk_tooling.adapters import support_inputs
-from sdk_tooling.native_plan import builder
+from sdk_tooling.xcframework import xcframework
 
 PACKAGE = "NaviApps.DesktopApplications"
 OVERRIDE = "DESKTOP_APPLICATIONS_NATIVE_LIBRARY"
@@ -128,7 +128,7 @@ def main(argv=None):
     dotnet = env.get("DOTNET_BIN") or shutil.which("dotnet", path=env.get("PATH"))
     if not dotnet:
         raise SystemExit("Install .NET 10 or set DOTNET_BIN.")
-    native = builder()
+    native = xcframework()
     native.verify(env)
     root = native.root
     framework = (

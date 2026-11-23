@@ -241,7 +241,7 @@ class WindowsOutputTests(unittest.TestCase):
                     patch.object(sys, "platform", "win32"),
                     patch.object(driver, "support_inputs", return_value=support),
                     patch.object(nuget, "support_inputs", return_value=support),
-                    patch.object(driver, "builder", return_value=native),
+                    patch.object(driver, "ffi_product", return_value=native),
                     patch.multiple(driver, c_compiler=bindings, managed=bindings),
                     patch.multiple(nuget, artifacts=artifacts, managed=bindings, packages=bindings),
                     patch.object(

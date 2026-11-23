@@ -16,7 +16,7 @@ from sdk_tooling import c_compiler
 from sdk_tooling import dotnet as managed
 from sdk_tooling import vm_environment as vm
 from sdk_tooling.adapters import load, support_inputs
-from sdk_tooling.native_plan import builder
+from sdk_tooling.native_plan import ffi_product
 
 from distribution.nuget import OVERRIDE, WINDOWS_RUNTIME, pack_and_consume
 
@@ -47,7 +47,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if not args.verify_artifact and sys.platform != "win32":
         parser.error("Use an owned Windows worker for runtime acceptance")
-    native = builder(ROOT)
+    native = ffi_product(ROOT)
     if args.verify_artifact:
         _, digest = verify_retained_artifact(native)
         print(json.dumps({"dllSha256": digest}))

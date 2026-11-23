@@ -9,15 +9,15 @@ check-distribution: test-distribution-tools test-nuget docs
 lint:
 	$(SDK_TOOLING) quality check --dotnet
 native:
-	$(SDK_TOOLING) native
+	$(SDK_TOOLING) xcframework
 native-verify:
-	$(SDK_TOOLING) native --verify
+	$(SDK_TOOLING) xcframework --verify
 test:
 	swift test $(SWIFT_FLAGS)
 test-consumer:
 	$(SDK_TOOLING) swift-consumer
 test-installed-consumers:
-	$(SDK_TOOLING) installed-consumers
+	$(SDK_TOOLING) rust-c-consumers
 test-nuget:
 	$(SDK_TOOLING) python -m distribution.nuget
 test-distribution-tools:

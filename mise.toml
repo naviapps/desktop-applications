@@ -18,4 +18,4 @@ uv = { version = "0.13.6", os = ["macos", "linux"] }
 
 [tasks.sdk-tooling]
 description = "Run the shared SDK development and distribution checks"
-run = "uvx --from git+https://github.com/naviapps/sdk-tooling.git@2f938131cb4deae08ce8bf092ebb4dee16723dd1 sdk-tooling"
+run = "uvx --from git+https://github.com/naviapps/sdk-tooling.git@888bf13f109ac7dc806b29478cc9c4acacdf6515 sdk-tooling"
