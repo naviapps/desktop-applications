@@ -1,11 +1,16 @@
 .DEFAULT_GOAL := check
 SDK_TOOLING ?= mise run sdk-tooling --
 SWIFT_FLAGS := -Xswiftc -strict-concurrency=complete -Xswiftc -warnings-as-errors
-.PHONY: check check-source test-managed check-distribution native native-verify test test-consumer test-installed-consumers test-rust test-distribution-tools test-nuget lint docs
+.PHONY: check check-source test-managed check-distribution native native-verify test test-consumer test-installed-consumers test-rust test-distribution-tools test-nuget lint docs clean
 check: check-source test test-consumer
 
 check-source: lint test-rust test-managed
 check-distribution: test-distribution-tools test-nuget docs
+clean:
+	$(SDK_TOOLING) clean .build target .native-build build/docs \
+	  fixtures/consumers/swift/.build fixtures/acceptance/macos/.build fixtures/acceptance/windows/target \
+	  bindings/dotnet/src/NaviApps.DesktopApplications/bin bindings/dotnet/src/NaviApps.DesktopApplications/obj \
+	  bindings/dotnet/tests/DesktopApplications.Tests/bin bindings/dotnet/tests/DesktopApplications.Tests/obj
 lint:
 	$(SDK_TOOLING) quality check --dotnet
 native:
