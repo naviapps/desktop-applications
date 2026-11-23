@@ -5,7 +5,7 @@ supported runtime, macOS 26, separately from newer runtimes. The Host uses
 the windowed Target app staged by the [acceptance script](acceptance.py), with a
 unique bundle identifier and a temporary work root. It does not change permissions or settings.
 
-Prepare the pinned tools using [development and validation](../../README.md#development-and-validation)
+Prepare the pinned tools using [development and validation](../../../README.md#development-and-validation)
 and select full Xcode through `DEVELOPER_DIR` if needed. From the repository root,
 the deterministic state test runs without launching an application:
 
@@ -19,7 +19,7 @@ Build both native fixture executables without launching them:
 
 ```sh
 mise exec -- swift build \
-  --package-path fixtures/macos \
+  --package-path fixtures/acceptance/macos \
   -Xswiftc -strict-concurrency=complete -Xswiftc -warnings-as-errors
 ```
 
@@ -32,7 +32,7 @@ In the owned guest, select the native cancellation case:
 
 ```sh
 DESKTOP_APPLICATIONS_ACCEPTANCE_CASE=opening-cancellation \
-  mise exec -- python3 -B fixtures/macos/acceptance.py
+  mise exec -- python3 -B fixtures/acceptance/macos/acceptance.py
 ```
 
 Omit the case environment variable to run both cancellation and
@@ -66,4 +66,4 @@ termination of the owned process. Foreground activation is subject to OS policy;
 the fixture does not claim that its activation request made the Target frontmost.
 
 These native checks are separate from the deterministic Swift tests and package
-consumption checks in [development and validation](../../README.md#development-and-validation).
+consumption checks in [development and validation](../../../README.md#development-and-validation).

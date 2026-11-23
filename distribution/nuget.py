@@ -10,7 +10,10 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-from sdk_tooling.adapters import load, support_inputs
+from sdk_tooling import artifacts
+from sdk_tooling import dotnet as managed
+from sdk_tooling import nuget as packages
+from sdk_tooling.adapters import support_inputs
 from sdk_tooling.native_plan import builder
 
 PACKAGE = "NaviApps.DesktopApplications"
@@ -22,7 +25,6 @@ WINDOWS_RUNTIME = "win-x64"
 def pack_and_consume(
     root,
     *,
-    bindings,
     dotnet,
     env,
     version,
@@ -32,8 +34,8 @@ def pack_and_consume(
     runtime=None,
     verified_hashes=None,
 ):
-    managed = root / "bindings/dotnet"
-    project = managed / "src" / PACKAGE / f"{PACKAGE}.csproj"
+    dotnet_root = root / "bindings/dotnet"
+    project = dotnet_root / "src" / PACKAGE / f"{PACKAGE}.csproj"
     name = f"{PACKAGE}.{version}.nupkg"
     verified_hashes = verified_hashes or {}
     notices = {
@@ -46,25 +48,25 @@ def pack_and_consume(
         stage = Path(directory)
         staged = {}
         for member, library in runtime_files.items():
-            path = bindings.stage_native(library, stage / member)
+            path = artifacts.stage_native(library, stage / member)
             expected = verified_hashes.get(member)
             if expected is not None and hashlib.sha256(path.read_bytes()).hexdigest() != expected:
                 raise ValueError("Staged runtime asset differs from the verified native receipt")
             staged[member] = path
-        bindings.pack_project(
+        managed.pack_project(
             dotnet,
             project,
             output=stage,
             env=env,
             cwd=root,
-            nuget_config=managed / "NuGet.Config",
+            nuget_config=dotnet_root / "NuGet.Config",
             properties={
                 "Version": version,
                 "DesktopApplicationsRuntimeAssets": stage / "runtimes",
             },
         )
         package = stage / name
-        digest = bindings.audit_package(
+        digest = packages.audit_package(
             package,
             expected_files={
                 "LICENSE": root / "LICENSE",
@@ -81,11 +83,11 @@ def pack_and_consume(
                             raise ValueError(
                                 "Packaged runtime asset differs from the verified native receipt"
                             )
-        bindings.run_isolated_consumer(
+        packages.run_isolated_consumer(
             dotnet,
             packages=[package],
             references={PACKAGE: version},
-            source=(managed / "tests/PackageConsumer/Program.cs").read_text(encoding="utf-8"),
+            source=(root / "fixtures/consumers/dotnet/Program.cs").read_text(encoding="utf-8"),
             work_parent=stage,
             env=env,
             runtime=runtime,
@@ -137,26 +139,24 @@ def main(argv=None):
     }
     verified_hashes = {}
     if args.include_windows:
-        from fixtures.distribution.windows import verify_retained_artifact
+        from distribution.verify_windows import verify_retained_artifact
 
         library, digest = verify_retained_artifact(native)
         member = f"runtimes/{WINDOWS_RUNTIME}/native/{library.name}"
         runtime_files[member] = library
         verified_hashes[member] = digest
-    bindings = load("bindings")
-    managed = root / "bindings/dotnet"
-    bindings.run_managed(
+    dotnet_root = root / "bindings/dotnet"
+    managed.run_managed(
         dotnet,
-        managed / "tests/DesktopApplications.Tests/DesktopApplications.Tests.csproj",
+        dotnet_root / "tests/DesktopApplications.Tests/DesktopApplications.Tests.csproj",
         cwd=root,
         env=dict(env, **{OVERRIDE: str(framework)}),
-        nuget_config=managed / "NuGet.Config",
+        nuget_config=dotnet_root / "NuGet.Config",
         verify_style=True,
     )
     output = root / ".native-build/packages"
     for name in pack_and_consume(
         root,
-        bindings=bindings,
         dotnet=dotnet,
         env=env,
         version=native.version,

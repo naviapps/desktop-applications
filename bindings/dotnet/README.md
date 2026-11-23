@@ -174,7 +174,7 @@ against a locally built DLL.
 
 For the packaging commands below, use the SDK Tooling revision in `mise.toml` as
 described under [distribution validation](../../README.md#distribution-validation).
-On macOS, `mise exec -- make test-dotnet` tests the managed
+On macOS, `mise exec -- make test-nuget` tests the managed
 contracts, packages both macOS runtime assets from the verified universal
 framework, and runs a consumer for the executing architecture. The accepted
 package is written to `.native-build/packages/`.
@@ -187,7 +187,7 @@ pinned revision.
 
 ```powershell
 $tooling = (Resolve-Path ../sdk-tooling).Path
-python -I -B "$tooling/tasks/sdk" python -m fixtures.distribution.windows
+python -I -B "$tooling/ci/run_sdk_tooling.py" python -m distribution.verify_windows
 ```
 
 The gate builds Rust and C ABI tests, runs managed contracts with an owned x64
@@ -204,7 +204,7 @@ artifact directory and its native receipt from the same source build under
 `.native-build/windows/win-x64/`.
 
 ```sh
-mise run sdk-tooling -- python -m fixtures.distribution.nuget --include-windows
+mise run sdk-tooling -- python -m distribution.nuget --include-windows
 ```
 
 This verifies the Windows DLL and macOS framework against their respective

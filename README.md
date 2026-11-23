@@ -19,7 +19,7 @@ Shortcuts and action plans belong to
 | C result buffers and failures                            | [C ownership and failures](#c-ownership-and-failures)                                                                                                                                          |
 | .NET installation and Windows usage                      | [.NET guide](https://github.com/naviapps/desktop-applications/blob/main/bindings/dotnet/README.md)                                                                                             |
 | Contributor setup, checks, native artifacts and CI scope | [Development and validation](#development-and-validation)                                                                                                                                      |
-| Owned macOS lifecycle and cancellation acceptance        | [macOS fixture guide](https://github.com/naviapps/desktop-applications/blob/main/fixtures/macos/README.md)                                                                                     |
+| Owned macOS lifecycle and cancellation acceptance        | [macOS fixture guide](fixtures/acceptance/macos/README.md)                                                                                                                                     |
 
 ## Install from Swift
 
@@ -105,7 +105,7 @@ exactly once. Keep an independent resource-cache owner alive for all its queries
 destroy it only with exclusive ownership and no concurrent/live queries. Cache
 transitions contain generations and eviction deltas; detach retained values
 before releasing objects whose destructors may reenter the adapter. The
-[C client](fixtures/c-consumer/main.c) exercises ownership on macOS and Windows.
+[C client](fixtures/consumers/c/main.c) exercises ownership on macOS and Windows.
 
 ## Swift usage
 
@@ -150,7 +150,7 @@ install the pinned tools and fetch dependencies before the validation:
 mise trust mise.toml
 mise install
 mise exec -- cargo fetch --locked
-mise exec -- cargo fetch --locked --manifest-path fixtures/windows/Cargo.toml
+mise exec -- cargo fetch --locked --manifest-path fixtures/acceptance/windows/Cargo.toml
 mise exec -- make check
 ```
 
@@ -177,7 +177,7 @@ Use `mise exec -- make format` to format owned source. The quality
 commands skip native artifacts and the original notices under `ThirdParty/`.
 
 `test-consumer` copies the installable Swift package, tests, native artifacts and
-notices into a temporary SDK tree, then builds and runs `fixtures/swift-consumer`
+notices into a temporary SDK tree, then builds and runs `fixtures/consumers/swift`
 as a separate package. It imports both products and exercises synthetic
 identifier normalization, caching and process validation without real OS effects.
 
@@ -187,7 +187,7 @@ The distribution recipe in [`sdk-distribution.toml`](sdk-distribution.toml) cove
 native framework provenance, portable build-driver tests, DocC, and clean NuGet
 and installed consumers. Use `mise exec -- make check-distribution` on macOS
 with the checkout's pinned tooling. The SDK-owned checks live in
-[`fixtures/distribution`](fixtures/distribution).
+[`distribution`](distribution).
 
 Maintainers can run the macOS and Windows x64 distribution checks in SDK Tooling
 for a reviewed SDK commit on `main`.
@@ -204,10 +204,10 @@ clean committed checkout on owned macOS:
 mise exec -- make test-installed-consumers
 ```
 
-The [Rust Git client](https://github.com/naviapps/desktop-applications/blob/main/fixtures/rust-consumer/src/main.rs)
+The [Rust Git client](fixtures/consumers/rust/src/main.rs)
 resolves a fresh lock from the exact SDK commit through an owned local Git mirror.
 Its independent Cargo cache may fetch registry crates separately from the workspace
-fetch. The [C client](fixtures/c-consumer/main.c)
+fetch. The [C client](fixtures/consumers/c/main.c)
 compiles against a copy of the tracked framework and notices. Both exercise
 synthetic normalization, stale-target rejection and cache invalidation without
 discovering or controlling applications. A shallow checkout needs a complete local
@@ -216,7 +216,7 @@ to use that source.
 
 ### Native acceptance
 
-Use the [owned macOS fixture guide](https://github.com/naviapps/desktop-applications/blob/main/fixtures/macos/README.md)
+Use the [owned macOS fixture guide](fixtures/acceptance/macos/README.md)
 for application lifecycle and opening-cancellation acceptance. Windows x64 runtime
 checks can run on the existing owned isolated ARM64 worker. The
 [.NET guide](https://github.com/naviapps/desktop-applications/blob/main/bindings/dotnet/README.md#contributor-validation)
@@ -246,9 +246,10 @@ Rust crates live in `crates/`. Rust core integration tests own shared identity
 and lifecycle behavior. Swift and .NET verify public value semantics, native data and error
 decoding, resource ownership and adapter behavior.
 Swift uses `Sources/` and `Tests/`; .NET uses `bindings/dotnet/src/` and
-`bindings/dotnet/tests/`. Standalone native fixture apps live in `fixtures/macos/`
-and `fixtures/windows/`, whose locked Cargo workspace supplies the x64 Windows
-test target for the .NET acceptance driver.
+`bindings/dotnet/tests/`. Independent package consumers live in `fixtures/consumers/`.
+The standalone native apps live in `fixtures/acceptance/`, where the Windows Cargo
+workspace supplies the x64 test target for the .NET acceptance driver. The scripts
+for building and checking release packages live in `distribution/`.
 
 ## License
 

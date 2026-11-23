@@ -12,13 +12,13 @@ from contextlib import nullcontext
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from fixtures.distribution import nuget
-from fixtures.distribution import windows as driver
+from distribution import nuget
+from distribution import verify_windows as driver
 
 
 class WindowsOutputTests(unittest.TestCase):
     def test_fixture_uses_the_registry_inputs_fetched_for_the_sdk(self):
-        root = Path(__file__).resolve().parents[3]
+        root = Path(__file__).resolve().parents[2]
 
         def registry(path):
             return {
@@ -27,7 +27,9 @@ class WindowsOutputTests(unittest.TestCase):
                 if package.get("source", "").startswith("registry+")
             }
 
-        self.assertEqual(registry("fixtures/windows/Cargo.lock") - registry("Cargo.lock"), set())
+        self.assertEqual(
+            registry("fixtures/acceptance/windows/Cargo.lock") - registry("Cargo.lock"), set()
+        )
 
     def test_retained_windows_verification_selects_the_accepted_dll_and_digest(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -73,10 +75,12 @@ class WindowsOutputTests(unittest.TestCase):
 
             bindings.stage_native.side_effect = stage
             bindings.pack_project.side_effect = pack
-            with self.assertRaisesRegex(ValueError, "Packaged runtime asset differs"):
+            with (
+                patch.multiple(nuget, artifacts=bindings, managed=bindings, packages=bindings),
+                self.assertRaisesRegex(ValueError, "Packaged runtime asset differs"),
+            ):
                 nuget.pack_and_consume(
                     root,
-                    bindings=bindings,
                     dotnet="dotnet",
                     env={},
                     version="0.1.0",
@@ -92,7 +96,7 @@ class WindowsOutputTests(unittest.TestCase):
     def test_nuget_preserves_the_previous_package_if_support_changes_during_acceptance(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            consumer = root / "bindings/dotnet/tests/PackageConsumer/Program.cs"
+            consumer = root / "fixtures/consumers/dotnet/Program.cs"
             consumer.parent.mkdir(parents=True)
             consumer.write_text("")
             package = root / "output/NaviApps.DesktopApplications.0.1.0.nupkg"
@@ -103,20 +107,20 @@ class WindowsOutputTests(unittest.TestCase):
                 output / package.name
             ).write_bytes(b"new package")
             bindings.audit_package.return_value = hashlib.sha256(b"new package").hexdigest()
-            support = {"@sdk-tooling/sdk_tooling/bindings.py": "a" * 64}
+            support = {"@sdk-tooling/sdk_tooling/nuget.py": "a" * 64}
             reviewed_support = support.copy()
 
             def consume(*args, **kwargs):
-                support["@sdk-tooling/sdk_tooling/bindings.py"] = "b" * 64
+                support["@sdk-tooling/sdk_tooling/nuget.py"] = "b" * 64
 
             bindings.run_isolated_consumer.side_effect = consume
             with (
+                patch.multiple(nuget, managed=bindings, packages=bindings),
                 patch.object(nuget, "support_inputs", side_effect=lambda: support.copy()),
                 self.assertRaisesRegex(ValueError, "SDK support sources changed"),
             ):
                 nuget.pack_and_consume(
                     root,
-                    bindings=bindings,
                     dotnet="dotnet",
                     env={},
                     version="0.1.0",
@@ -145,10 +149,10 @@ class WindowsOutputTests(unittest.TestCase):
                 if stale:
                     legacy.mkdir(parents=True)
                     (legacy / library.name).write_bytes(b"stale SDK DLL")
-                consumer = root / "bindings/dotnet/tests/PackageConsumer/Program.cs"
+                consumer = root / "fixtures/consumers/dotnet/Program.cs"
                 consumer.parent.mkdir(parents=True)
                 consumer.write_bytes(
-                    (driver.ROOT / "bindings/dotnet/tests/PackageConsumer/Program.cs").read_bytes()
+                    (driver.ROOT / "fixtures/consumers/dotnet/Program.cs").read_bytes()
                 )
                 unselected = root / "bindings/dotnet/runtimes/osx-arm64/native"
                 unselected.mkdir(parents=True)
@@ -194,7 +198,6 @@ class WindowsOutputTests(unittest.TestCase):
                         asset = "win-x64/native/desktop_applications.dll"
                         archive.write(assets / asset, "runtimes/" + asset)
 
-                bindings.stage_native.side_effect = stage
                 bindings.pack_project.side_effect = pack
                 bindings.audit_package.side_effect = lambda path, **_: hashlib.sha256(
                     path.read_bytes()
@@ -208,11 +211,12 @@ class WindowsOutputTests(unittest.TestCase):
                         (target / "desktop-applications-test-target.exe").write_bytes(b"fixture")
 
                 artifacts = Mock()
+                artifacts.stage_native.side_effect = stage
                 artifacts.build_lock.side_effect = lambda path: nullcontext()
                 artifacts.write_json.side_effect = lambda path, data: path.write_text(
                     json.dumps(data)
                 )
-                support = {"@sdk-tooling/sdk_tooling/bindings.py": "d" * 64}
+                support = {"@sdk-tooling/sdk_tooling/nuget.py": "d" * 64}
 
                 def check_output(command, **options):
                     if command == ["dotnet", "--version"]:
@@ -238,12 +242,13 @@ class WindowsOutputTests(unittest.TestCase):
                     patch.object(driver, "support_inputs", return_value=support),
                     patch.object(nuget, "support_inputs", return_value=support),
                     patch.object(driver, "builder", return_value=native),
+                    patch.multiple(driver, c_compiler=bindings, managed=bindings),
+                    patch.multiple(nuget, artifacts=artifacts, managed=bindings, packages=bindings),
                     patch.object(
                         driver,
                         "load",
                         side_effect={
                             "windows": shared,
-                            "bindings": bindings,
                             "artifacts": artifacts,
                         }.get,
                     ),
@@ -273,7 +278,7 @@ class WindowsOutputTests(unittest.TestCase):
                     builds[0][2:],
                     [
                         "--manifest-path",
-                        str(root / "fixtures/windows/Cargo.toml"),
+                        str(root / "fixtures/acceptance/windows/Cargo.toml"),
                         "--target",
                         driver.TARGET,
                         "--target-dir",
@@ -304,7 +309,7 @@ class WindowsOutputTests(unittest.TestCase):
                         (managed["arguments"][0], "x64"),
                     ],
                 )
-                self.assertEqual(bindings.stage_native.call_args.args[0], candidate / library.name)
+                self.assertEqual(artifacts.stage_native.call_args.args[0], candidate / library.name)
                 self.assertEqual(
                     tuple(bindings.audit_package.call_args.kwargs["runtime_files"]),
                     ("runtimes/win-x64/native/desktop_applications.dll",),

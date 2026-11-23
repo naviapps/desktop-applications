@@ -9,8 +9,8 @@ __pycache__/
 .DS_Store
 *.xcresult
 /build/
-/fixtures/macos/.build/
-/fixtures/macos/.swiftpm/
-/fixtures/windows/bin/
-/fixtures/windows/obj/
-/fixtures/windows/target/
+/fixtures/**/.build/
+/fixtures/**/.swiftpm/
+/fixtures/**/bin/
+/fixtures/**/obj/
+/fixtures/**/windows/target/

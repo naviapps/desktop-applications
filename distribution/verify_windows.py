@@ -12,13 +12,15 @@ import tempfile
 import tomllib
 from pathlib import Path
 
+from sdk_tooling import c_compiler
+from sdk_tooling import dotnet as managed
 from sdk_tooling import vm_environment as vm
 from sdk_tooling.adapters import load, support_inputs
 from sdk_tooling.native_plan import builder
 
-from fixtures.distribution.nuget import OVERRIDE, WINDOWS_RUNTIME, pack_and_consume
+from distribution.nuget import OVERRIDE, WINDOWS_RUNTIME, pack_and_consume
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 TARGET = "x86_64-pc-windows-msvc"
 RID = WINDOWS_RUNTIME
 
@@ -56,7 +58,6 @@ def main(argv=None):
     library = native.library + ".dll"
     artifacts_tooling = load("artifacts")
     output_dir = ROOT / ".native-build"
-    bindings = load("bindings")
     host = windows.host_architecture()
     env, tools, dotnet = windows.native_environment(host, target_architecture="x64")
     artifacts = vm.artifacts_dir(env) or output_dir
@@ -100,8 +101,8 @@ def main(argv=None):
         if directory != built:
             raise ValueError("Windows DLL verification selected a different native output")
         candidate = Path(temporary)
-        dll = bindings.stage_native(built / library, candidate / library)
-        import_library = bindings.stage_native(
+        dll = artifacts_tooling.stage_native(built / library, candidate / library)
+        import_library = artifacts_tooling.stage_native(
             built / (library + ".lib"), candidate / (library + ".lib")
         )
         for path in (dll, import_library):
@@ -112,8 +113,8 @@ def main(argv=None):
                 raise ValueError("Windows fixture input differs from its verified native receipt")
         windows.require_pe_machine(dll, "x64")
         c_fixture = candidate / "abi.exe"
-        bindings.compile_c(
-            ROOT / "fixtures/c-consumer/main.c",
+        c_compiler.compile_c(
+            ROOT / "fixtures/consumers/c/main.c",
             output=c_fixture,
             compiler=[tools / "cl.exe"],
             include_dirs=[ROOT / "crates/ffi/include"],
@@ -124,12 +125,11 @@ def main(argv=None):
         )
         windows.require_pe_machine(c_fixture, "x64")
         run(c_fixture)
-        run_managed_fixtures(windows, bindings, dotnet, env, candidate, dll, run)
+        run_managed_fixtures(windows, dotnet, env, candidate, dll, run)
         member = f"runtimes/{RID}/native/{library}"
         dll_hash = native_receipt["outputs"][library]
         package_hashes = pack_and_consume(
             ROOT,
-            bindings=bindings,
             dotnet=dotnet,
             output=packages,
             env=env,
@@ -174,13 +174,13 @@ def main(argv=None):
     print(f"Windows x64 desktop-applications acceptance passed on {host}.")
 
 
-def run_managed_fixtures(windows, bindings, dotnet, env, candidate, dll, run):
+def run_managed_fixtures(windows, dotnet, env, candidate, dll, run):
     output = candidate / "fixture-build"
     run(
         "cargo",
         "build",
         "--manifest-path",
-        ROOT / "fixtures/windows/Cargo.toml",
+        ROOT / "fixtures/acceptance/windows/Cargo.toml",
         "--target",
         TARGET,
         "--target-dir",
@@ -193,7 +193,7 @@ def run_managed_fixtures(windows, bindings, dotnet, env, candidate, dll, run):
     executable.parent.mkdir()
     shutil.copyfile(output / TARGET / "release/desktop-applications-test-target.exe", executable)
     windows.require_pe_machine(executable, "x64")
-    bindings.run_managed(
+    managed.run_managed(
         dotnet,
         ROOT / "bindings/dotnet/tests/DesktopApplications.Tests/DesktopApplications.Tests.csproj",
         cwd=ROOT,

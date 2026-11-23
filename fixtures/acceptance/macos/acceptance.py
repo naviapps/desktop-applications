@@ -9,16 +9,16 @@ import tempfile
 import uuid
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+FIXTURE = Path(__file__).resolve().parent
+ROOT = FIXTURE.parents[2]
 
 
 def main():
-    fixture = ROOT / "fixtures/macos"
     env = os.environ.copy()
-    subprocess.run(["swift", "build", "--package-path", str(fixture)], check=True, env=env)
+    subprocess.run(["swift", "build", "--package-path", str(FIXTURE)], check=True, env=env)
     binary = Path(
         subprocess.check_output(
-            ["swift", "build", "--package-path", str(fixture), "--show-bin-path"],
+            ["swift", "build", "--package-path", str(FIXTURE), "--show-bin-path"],
             text=True,
             env=env,
         ).strip()
