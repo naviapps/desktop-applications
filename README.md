@@ -12,14 +12,14 @@ Shortcuts and action plans belong to
 
 ## Documentation
 
-| Need                                                     | Guide                                                                                                                                                                                          |
-| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Swift shared values and cache API                        | [DesktopApplications DocC catalog](https://github.com/naviapps/desktop-applications/blob/main/Sources/DesktopApplications/DesktopApplications.docc/DesktopApplications.md)                     |
-| AppKit discovery, opening and lifecycle API              | [DesktopApplicationsMacOS DocC catalog](https://github.com/naviapps/desktop-applications/blob/main/Sources/DesktopApplicationsMacOS/DesktopApplicationsMacOS.docc/DesktopApplicationsMacOS.md) |
-| C result buffers and failures                            | [C ownership and failures](#c-ownership-and-failures)                                                                                                                                          |
-| .NET installation and Windows usage                      | [.NET guide](https://github.com/naviapps/desktop-applications/blob/main/bindings/dotnet/README.md)                                                                                             |
-| Contributor setup, checks, native artifacts and CI scope | [Development and validation](#development-and-validation)                                                                                                                                      |
-| Owned macOS lifecycle and cancellation acceptance        | [macOS fixture guide](fixtures/acceptance/macos/README.md)                                                                                                                                     |
+| Need                                                     | Guide                                                                                                            |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Swift shared values and cache API                        | [DesktopApplications guide](https://github.com/naviapps/desktop-applications/blob/main/docs/swift.md)            |
+| AppKit discovery, opening and lifecycle API              | [DesktopApplicationsMacOS guide](https://github.com/naviapps/desktop-applications/blob/main/docs/swift-macos.md) |
+| C result buffers and failures                            | [C ownership and failures](#c-ownership-and-failures)                                                            |
+| .NET installation and Windows usage                      | [.NET guide](https://github.com/naviapps/desktop-applications/blob/main/bindings/dotnet/README.md)               |
+| Contributor setup, checks, native artifacts and CI scope | [Development and validation](#development-and-validation)                                                        |
+| Owned macOS lifecycle and cancellation acceptance        | [macOS fixture guide](fixtures/acceptance/macos/README.md)                                                       |
 
 ## Install from Swift
 
@@ -125,7 +125,7 @@ func frontmostApplicationName() -> String? {
 Configured opening uses `try await` and throws `CancellationError` when
 cancellation wins; a dispatched OS launch may still complete. Handle cancellation
 separately from typed `ApplicationRequestResult` failures. The
-[macOS API catalog](https://github.com/naviapps/desktop-applications/blob/main/Sources/DesktopApplicationsMacOS/DesktopApplicationsMacOS.docc/DesktopApplicationsMacOS.md)
+[macOS API guide](https://github.com/naviapps/desktop-applications/blob/main/docs/swift-macos.md)
 explains opening, subscriptions and resource lookup.
 
 ## Install from .NET
@@ -158,7 +158,7 @@ mise exec -- make check
 MSTest cases, strict Swift tests, and a standalone SwiftPM consumer. These checks
 use the SDK fixtures in this checkout and the public SDK Tooling revision pinned
 in [`mise.toml`](mise.toml). Mise fetches that revision for lint, formatting,
-Swift consumer, DocC, and installed-consumer checks.
+Swift consumer and installed-consumer checks.
 
 Public GitHub Actions runs the same Swift tests and standalone consumer on macOS 26
 with Xcode 26.6 and macOS 27 with Xcode 27.2. The public Windows x64 job runs the
@@ -195,8 +195,8 @@ identifier normalization, caching and process validation without real OS effects
 ### Distribution validation
 
 The distribution recipe in [`sdk-distribution.toml`](sdk-distribution.toml) covers
-native framework provenance, portable build-driver tests, DocC, and clean NuGet
-and installed consumers. Use `mise exec -- make check-distribution` on macOS
+native framework provenance, portable build-driver tests, clean NuGet and
+installed consumers. Use `mise exec -- make check-distribution` on macOS
 with the checkout's pinned tooling. The SDK-owned checks live in
 [`distribution`](distribution).
 

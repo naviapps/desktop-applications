@@ -3,13 +3,13 @@ SDK_TOOLING ?= mise run sdk-tooling --
 SWIFT_FLAGS := -Xswiftc -strict-concurrency=complete -Xswiftc -warnings-as-errors
 CBINDGEN := cbindgen --config crates/ffi/cbindgen.toml crates/ffi/src/lib.rs
 C_HEADER := crates/ffi/include/desktop_applications.h
-.PHONY: check check-source test-managed check-distribution native native-verify check-header generate-header test test-consumer test-installed-consumers test-rust test-distribution-tools test-nuget lint docs clean
+.PHONY: check check-source test-managed check-distribution native native-verify check-header generate-header test test-consumer test-installed-consumers test-rust test-distribution-tools test-nuget lint clean
 check: check-source test test-consumer
 
 check-source: lint check-header test-rust test-managed
-check-distribution: check-header test-distribution-tools test-nuget docs
+check-distribution: check-header test-distribution-tools test-nuget
 clean:
-	$(SDK_TOOLING) clean .build target .native-build build/docs \
+	$(SDK_TOOLING) clean .build target .native-build \
 	  fixtures/consumers/swift/.build fixtures/acceptance/macos/.build fixtures/acceptance/windows/target \
 	  bindings/dotnet/src/NaviApps.DesktopApplications/bin bindings/dotnet/src/NaviApps.DesktopApplications/obj \
 	  bindings/dotnet/tests/DesktopApplications.Tests/bin bindings/dotnet/tests/DesktopApplications.Tests/obj \
@@ -39,9 +39,6 @@ test-rust:
 	cargo test --workspace --locked --offline
 	cargo fmt --manifest-path fixtures/acceptance/windows/Cargo.toml -- --check
 	cargo test --manifest-path fixtures/acceptance/windows/Cargo.toml --locked --offline
-
-docs:
-	$(SDK_TOOLING) docs
 
 .PHONY: format
 format:

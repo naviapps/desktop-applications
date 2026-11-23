@@ -1,4 +1,4 @@
-# ``DesktopApplications``
+# Swift application values and caches
 
 Shared application identity, process validation and lifecycle reconciliation backed by Rust.
 
@@ -30,19 +30,7 @@ snapshots. A zero creation token cannot authorize snapshot control. Merely
 declaring an `.appUserModel` identifier does not add packaged-app activation to
 the Windows adapter.
 
-## Topics
-
-### Identity and snapshots
-
-- ``ApplicationIdentifier``
-- ``ApplicationProcessIdentity``
-- ``ApplicationSnapshot``
-- ``ApplicationTargetValidationError``
-
-### Native resource cache identity
-
-- ``ApplicationResourceIdentity``
-- ``ApplicationResourceCache``
+## Native resource cache identity
 
 The Rust cache keeps at most 128 installation/revision/variant identities in
 recency order. Resource keys compare each field by exact spelling. Adapters
@@ -57,20 +45,11 @@ and never transfer images or handles into Rust. Reentrant invalidation cannot
 restore an obsolete value. The cache is synchronous and executor-confined in Swift;
 Swift object release happens after the retained-value map has been updated.
 
-### Lifecycle and request results
+## Lifecycle and request results
 
 Polling adapters supply two complete application samples to
-``ApplicationState/reconcile(_:)`` to derive ordered lifecycle changes. Use the
+`ApplicationState.reconcile(_:)` to derive ordered lifecycle changes. Use the
 returned state as the baseline for the next sample. To start observing without
 reporting already running applications as launches, capture a baseline before
 the first interval. A sample with duplicate process IDs, unavailable creation
 tokens or a frontmost identity absent from its application list is rejected.
-
-- ``ApplicationState``
-- ``ApplicationReconciliation``
-- ``ApplicationEvent``
-- ``ApplicationRequestResult``
-- ``ApplicationOperationError``
-- ``ApplicationLaunchError``
-- ``ApplicationTerminationMode``
-- ``DesktopApplicationsError``

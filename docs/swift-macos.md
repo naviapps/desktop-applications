@@ -1,4 +1,4 @@
-# ``DesktopApplicationsMacOS``
+# Swift application discovery and lifecycle on macOS
 
 AppKit application discovery, launch, control and lifecycle notifications.
 
@@ -67,20 +67,13 @@ and wait return the snapshot exactly as it was recorded.
 The duplicate activation coordinator is notification-based coordination, not an
 exclusive ownership lock; the host decides whether another instance should exit.
 
-## Topics
-
-### Native applications
-
-- ``ApplicationManager``
+## Native applications
 
 The name-based installed application lookup searches the supplied directories in
 order. A name containing U+0000 returns nil. Search directories containing
 U+0000 are skipped before native path conversion.
 
-### Display names and native icons
-
-- ``ApplicationResources``
-- ``ApplicationBundleDisplayName``
+## Display names and native icons
 
 Swift `ApplicationResources` provides running/installed display-name lookup and
 native `NSImage` icons. It skips empty or whitespace-only names from matching
@@ -113,7 +106,3 @@ to redraw or flush the operating system's own caches.
 
 The host supplies fallback UI and redraw policy; the SDK returns nil when no
 native resource is available.
-
-### Duplicate activation coordination
-
-- ``ApplicationDuplicateActivationCoordinator``
