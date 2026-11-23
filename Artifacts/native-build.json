@@ -753,7 +753,7 @@
   "inputs": {
     "Cargo.lock": "6ee27f1c63ffb8a925de0e761e325b187a3222a5a05957ea4874b3df7eca4355",
     "Cargo.toml": "1a053a0b6dbabda61d70e9e23b8b6d13c001b884329ba8707ca45404b50714bf",
-    "LICENSE": "b39443ebe1456bafd85250f7b01f85f3b4807b7db9e445298f2c442e020b6265",
+    "LICENSE": "e18e92825e5b064c568d67d636729c2d8669b61ea9d68b0fa5283b713d70aab1",
     "ThirdParty/Rust/COPYRIGHT": "172020dbfd5b53a226dfde77616190a48dcff519b0bc0e6deb91a8450782c4af",
     "ThirdParty/Rust/COPYRIGHT-library.html": "5647be074c8edf7339fd863055923a8fc80bc5610a8d4661ec3b767b9d392c27",
     "ThirdParty/Rust/LICENSE-APACHE": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
@@ -807,12 +807,12 @@
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Headers": "036ae9446c4f0c59046671d1d96e2de4f606b340d8a5c1927b2d51bc293e0365",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Modules": "278b6b2d8f8418e2e4877a67a109b6e3865174e4fa7405870a643e95cbc2f783",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Resources": "c213ee8e9c523538d862da3e5716b64bf090f6a1be08914954ae33cfbda7dbb2",
-    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/CDesktopApplications": "8b49568503df7726c4a2c57709cfb3d883ee450c88316e643e89e184b2ef194e",
+    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/CDesktopApplications": "8a8d6d8d4fb158dadd2ddd13688c872cca81ec49ef47fe1123bc7cde92ee626d",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/Headers/desktop_applications.h": "ac25beda700a0697b7c3365ffebf24beaa9667785bb68ab96fb82d7c03f7791c",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/Modules/module.modulemap": "4fda91eae9ef882505b08f3f1f3d8e040f9ba5929904fafe9274d379f69c5c80",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/Resources/Info.plist": "e283e455781578e7e027fe55a8498699e595990bba5de0865450f6c0eeae4987",
-    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/Resources/ThirdPartyNotices.txt": "3c079c0e75fc8f1455179639d1de53d9b9290dc8b7e29967950b711f307662a5",
-    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/_CodeSignature/CodeResources": "5300c3ab723c4d64fa2833833f33572dda83dcc57bfcf0e87e33133080ac829a",
+    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/Resources/ThirdPartyNotices.txt": "2116a8ded0f31d28bed9fd4ceeb7eb763eb3b5cbd26da35c84147b60761678b4",
+    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/_CodeSignature/CodeResources": "e47077d1f3eefc28fec9ca4be30487fe195a2ac9e0a29a52c0a371cf9e3ea4af",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/Current": "ee26006c07174064a7bed9b283a8b016d74a295e05c4e23a1846538d69b23c5f"
   },
   "productionSources": [
