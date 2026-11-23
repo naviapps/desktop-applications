@@ -7,6 +7,9 @@ use serde::Deserialize;
 mod resource_cache;
 pub use resource_cache::*;
 
+#[cfg(test)]
+mod transport_tests;
+
 pub struct Buffer(Vec<u8>);
 
 #[unsafe(no_mangle)]

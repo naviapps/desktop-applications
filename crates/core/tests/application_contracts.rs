@@ -204,13 +204,13 @@ fn recorded_control_rechecks_live_process_and_optional_identifier() {
 }
 
 #[test]
-fn reconciliation_orders_mixed_transitions_and_retains_the_matching_sample() {
+fn reconciliation_orders_mixed_transitions_when_the_foreground_pid_is_reused() {
     let first_terminated = snapshot(10, 100);
     let old_foreground = snapshot(40, 100);
     let last_terminated = snapshot(60, 100);
     let first_launched = snapshot(15, 100);
     let second_launched = snapshot(30, 100);
-    let new_foreground = snapshot(55, 100);
+    let new_foreground = snapshot(40, 101);
     let retained = snapshot(20, 100);
     let refreshed = ApplicationSnapshot {
         display_name: Some("New display name".into()),
@@ -402,6 +402,11 @@ fn reconciliation_rejects_invalid_previous_and_current_samples() {
         (
             vec![original.clone(), original.clone()],
             Some(original.identity),
+            ValidationError::DuplicateProcess,
+        ),
+        (
+            vec![original.clone(), invalid_identifier.clone()],
+            None,
             ValidationError::DuplicateProcess,
         ),
         (

@@ -1,9 +1,4 @@
-// This library ships as a staticlib/cdylib without an rlib for Cargo integration tests.
-// Compile its source as an ordinary module to call the existing ABI from this harness.
-#[path = "../src/lib.rs"]
-mod ffi;
-
-use ffi::*;
+use super::*;
 use serde_json::{Value, json};
 use std::ptr::{null, null_mut};
 

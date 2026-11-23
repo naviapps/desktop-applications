@@ -1,7 +1,12 @@
+#ifdef _WIN32
+#include <desktop_applications.h>
+#else
 #include <CDesktopApplications/desktop_applications.h>
+#endif
 #include <assert.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 enum { RESPONSE_CAPACITY = 512 };
@@ -55,10 +60,13 @@ int main(void) {
         "\"identifier\":{\"kind\":\"bundle\",\"value\":\"com.Example.Fixture\"},"
         "\"location\":\"synthetic-installation\",\"revision\":\"r1\",\"variant\":\"icon\"}}";
     cache_query(cache, resolve, response);
-    const char *generation_field = strstr(response, "\"generation\":");
-    uint64_t generation = 0;
-    assert(generation_field != NULL &&
-           sscanf(generation_field, "\"generation\":%" SCNu64, &generation) == 1 && generation > 0);
+    const char *generation_key = "\"generation\":";
+    const char *generation_value = strstr(response, generation_key);
+    assert(generation_value != NULL);
+    generation_value += strlen(generation_key);
+    char *end = NULL;
+    uint64_t generation = strtoull(generation_value, &end, 10);
+    assert(end > generation_value && generation > 0);
     char admit[128];
     int length = snprintf(admit, sizeof admit,
                           "{\"action\":\"admitLoad\",\"generation\":%" PRIu64 "}", generation);

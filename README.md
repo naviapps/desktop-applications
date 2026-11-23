@@ -1,6 +1,6 @@
 # DesktopApplications
 
-Private application identity, discovery and lifecycle SDK for Rust, Swift, C and .NET.
+Application identity, discovery and lifecycle SDK for Rust, Swift, C and .NET.
 
 Rust owns identifier normalization, recorded process validation, lifecycle
 reconciliation and bounded resource-cache decisions. Native adapters own OS
@@ -25,9 +25,7 @@ Shortcuts and action plans belong to
 
 Swift consumers pin `https://github.com/naviapps/desktop-applications.git` to a
 full commit and select `DesktopApplications` or `DesktopApplicationsMacOS`.
-The tracked native framework permits SwiftPM installation without Rust on the
-consumer machine. Authenticated repository access is configured by the consumer;
-no credential is stored in this package.
+SwiftPM uses the tracked native framework without a Rust toolchain.
 
 A minimal consumer `Package.swift` can select both public products. Replace
 `<FULL_PUBLISHED_COMMIT_SHA>` with a reviewed full published revision containing
@@ -58,14 +56,14 @@ let package = Package(
 
 The package has no Swift package dependencies. Supply the executable's source
 under `Sources/ApplicationClient/`, then run `swift build`. Choose a newer accepted
-full revision when updating the SDK; package access remains consumer configured.
+full revision when updating the SDK.
 
 ## Install from Rust or C
 
 The public `desktop-applications` crate requires Rust 1.99 or later and the
 target platform linker. It uses Serde and does not link the SDK's C framework
-or build a native discovery adapter. Set up authenticated Git access in your
-own environment and replace the placeholder with the full published commit:
+or build a native discovery adapter. Replace the placeholder with a full
+published commit:
 
 ```toml
 [dependencies]
@@ -106,9 +104,8 @@ before calling `desktop_applications_buffer_free`, and free each nonnull owner
 exactly once. Keep an independent resource-cache owner alive for all its queries;
 destroy it only with exclusive ownership and no concurrent/live queries. Cache
 transitions contain generations and eviction deltas; detach retained values
-before releasing objects whose destructors may reenter the adapter. See the
-[C ABI fixture](https://github.com/naviapps/desktop-applications/blob/main/crates/ffi/tests/c/abi.c) and
-[independent C client](https://github.com/naviapps/desktop-applications/blob/main/fixtures/c-consumer/main.c) for executable ownership examples.
+before releasing objects whose destructors may reenter the adapter. The
+[C client](fixtures/c-consumer/main.c) exercises ownership on macOS and Windows.
 
 ## Swift usage
 
@@ -171,12 +168,12 @@ Rust workspace tests and the .NET binding fixture against a DLL built from sourc
 
 | Command from the repository root  | Evidence                                                   |
 | --------------------------------- | ---------------------------------------------------------- |
-| `mise run lint`                   | Owned-source formatting and semantic lint                  |
+| `mise exec -- make lint`          | Owned-source formatting and semantic lint                  |
 | `mise exec -- make test-rust`     | Rust workspace and Windows fixture tests                   |
 | `mise exec -- make test-managed`  | Managed API contracts                                      |
 | `mise exec -- make test-consumer` | Strict build and execution of the external SwiftPM fixture |
 
-Use `mise run format` when intentionally formatting owned source. The quality
+Use `mise exec -- make format` to format owned source. The quality
 commands skip native artifacts and the original notices under `ThirdParty/`.
 
 `test-consumer` copies the installable Swift package, tests, native artifacts and
@@ -210,14 +207,12 @@ mise exec -- make test-installed-consumers
 The [Rust Git client](https://github.com/naviapps/desktop-applications/blob/main/fixtures/rust-consumer/src/main.rs)
 resolves a fresh lock from the exact SDK commit through an owned local Git mirror.
 Its independent Cargo cache may fetch registry crates separately from the workspace
-fetch. The [C client](https://github.com/naviapps/desktop-applications/blob/main/fixtures/c-consumer/main.c)
+fetch. The [C client](fixtures/c-consumer/main.c)
 compiles against a copy of the tracked framework and notices. Both exercise
 synthetic normalization, stale-target rejection and cache invalidation without
 discovering or controlling applications. A shallow checkout needs a complete local
 mirror or bundle. Run `mise run sdk-tooling -- installed-consumers --git-source <path>`
 to use that source.
-The independent clients verify installation from a local source mirror and the
-tracked framework bytes.
 
 ### Native acceptance
 
@@ -247,9 +242,8 @@ packages retain the original notice files. Local packaging does not publish to a
 
 ### Repository layout
 
-Rust crates live in `crates/`, including the C ABI fixture in `crates/ffi/tests/c/`.
-The Rust core integration tests own the shared identity and lifecycle case
-matrix. Swift and .NET verify public value semantics, native data and error
+Rust crates live in `crates/`. Rust core integration tests own shared identity
+and lifecycle behavior. Swift and .NET verify public value semantics, native data and error
 decoding, resource ownership and adapter behavior.
 Swift uses `Sources/` and `Tests/`; .NET uses `bindings/dotnet/src/` and
 `bindings/dotnet/tests/`. Standalone native fixture apps live in `fixtures/macos/`

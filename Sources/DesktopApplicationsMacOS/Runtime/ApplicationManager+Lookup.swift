@@ -2,42 +2,10 @@ import Darwin
 import DesktopApplications
 
 extension ApplicationManager {
-  enum ApplicationLookupError: Error {
-    case invalidProcessIdentifier
-    case invalidBundleIdentifier
-    case processIdentityUnavailable
-    case processIdentityMismatch
-    case applicationNotFound
-    case applicationTerminated
-    case applicationBundleIdentifierUnavailable
-    case applicationBundleIdentifierMismatch
-
-    var requestError: ApplicationOperationError {
-      switch self {
-      case .invalidProcessIdentifier:
-        .invalidProcessIdentifier
-      case .invalidBundleIdentifier:
-        .invalidBundleIdentifier
-      case .processIdentityUnavailable:
-        .processIdentityUnavailable
-      case .processIdentityMismatch:
-        .processIdentityMismatch
-      case .applicationNotFound:
-        .applicationNotFound
-      case .applicationTerminated:
-        .applicationTerminated
-      case .applicationBundleIdentifierUnavailable:
-        .applicationBundleIdentifierUnavailable
-      case .applicationBundleIdentifierMismatch:
-        .applicationBundleIdentifierMismatch
-      }
-    }
-  }
-
   static func applicationRequestResult(
     fromApplicationLookupResult applicationLookupResult: Result<
       any ApplicationManagerRunningApplication,
-      ApplicationLookupError
+      ApplicationOperationError
     >,
     request: (any ApplicationManagerRunningApplication) -> ApplicationRequestResult<
       ApplicationOperationError
@@ -47,12 +15,12 @@ extension ApplicationManager {
     case .success(let application):
       request(application)
     case .failure(let error):
-      .failed(error.requestError)
+      .failed(error)
     }
   }
 
   func currentApplicationLookupResult()
-    -> Result<any ApplicationManagerRunningApplication, ApplicationLookupError>
+    -> Result<any ApplicationManagerRunningApplication, ApplicationOperationError>
   {
     guard let application = dependencies.currentApplication() else {
       return .failure(.applicationNotFound)
@@ -68,7 +36,7 @@ extension ApplicationManager {
 
   func runningApplication(
     matchingProcessIdentifier processIdentifier: pid_t
-  ) -> Result<any ApplicationManagerRunningApplication, ApplicationLookupError> {
+  ) -> Result<any ApplicationManagerRunningApplication, ApplicationOperationError> {
     guard processIdentifier > 0 else {
       return .failure(.invalidProcessIdentifier)
     }
@@ -86,7 +54,7 @@ extension ApplicationManager {
   func runningApplication(
     matchingProcessIdentifier processIdentifier: pid_t,
     expectedBundleIdentifier: String
-  ) -> Result<any ApplicationManagerRunningApplication, ApplicationLookupError> {
+  ) -> Result<any ApplicationManagerRunningApplication, ApplicationOperationError> {
     guard let expected = try? ApplicationIdentifier(kind: .bundle, value: expectedBundleIdentifier)
     else {
       return .failure(.invalidBundleIdentifier)
@@ -108,7 +76,7 @@ extension ApplicationManager {
 
   func runningApplication(
     matching snapshot: ApplicationSnapshot
-  ) -> Result<any ApplicationManagerRunningApplication, ApplicationLookupError> {
+  ) -> Result<any ApplicationManagerRunningApplication, ApplicationOperationError> {
     guard snapshot.processIdentifier > 0 else {
       return .failure(.invalidProcessIdentifier)
     }
@@ -146,7 +114,7 @@ extension ApplicationManager {
 
   func runningApplication(
     matchingBundleIdentifier bundleIdentifier: String
-  ) -> Result<any ApplicationManagerRunningApplication, ApplicationLookupError> {
+  ) -> Result<any ApplicationManagerRunningApplication, ApplicationOperationError> {
     guard let bundleIdentifier = ApplicationBundleIdentifierInput.trimmedNonEmpty(bundleIdentifier)
     else {
       return .failure(.invalidBundleIdentifier)

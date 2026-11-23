@@ -4,7 +4,7 @@ mod resources;
 pub use resources::*;
 
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, btree_map::Entry};
 
 /// Identifiers are opaque OS lookup keys, not portable cross-machine identities.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -26,6 +26,13 @@ impl ApplicationIdentifier {
     /// Bundle lookup accepts surrounding Unicode whitespace. Paths and Windows
     /// lookup keys retain their exact spelling. No identifier is case folded.
     pub fn normalized(&self) -> Result<Self, ValidationError> {
+        Ok(Self {
+            kind: self.kind,
+            value: self.normalized_value()?.into(),
+        })
+    }
+
+    fn normalized_value(&self) -> Result<&str, ValidationError> {
         let value = match self.kind {
             IdentifierKind::Bundle => self.value.trim(),
             _ => &self.value,
@@ -33,10 +40,7 @@ impl ApplicationIdentifier {
         if value.is_empty() || value.chars().any(char::is_control) {
             return Err(ValidationError::InvalidIdentifier);
         }
-        Ok(Self {
-            kind: self.kind,
-            value: value.into(),
-        })
+        Ok(value)
     }
 }
 
@@ -102,13 +106,13 @@ pub fn validate_target(
         return Err(ValidationError::TargetChanged);
     }
     if let Some(expected_identifier) = &expected.identifier {
-        let expected_identifier = expected_identifier.normalized()?;
+        let expected_value = expected_identifier.normalized_value()?;
         let actual_identifier = actual
             .identifier
             .as_ref()
-            .ok_or(ValidationError::IdentifierUnavailable)?
-            .normalized()?;
-        if expected_identifier != actual_identifier {
+            .ok_or(ValidationError::IdentifierUnavailable)?;
+        let actual_value = actual_identifier.normalized_value()?;
+        if expected_identifier.kind != actual_identifier.kind || expected_value != actual_value {
             return Err(ValidationError::IdentifierMismatch);
         }
     }
@@ -174,28 +178,33 @@ pub struct ApplicationState {
 }
 
 impl ApplicationState {
-    fn indexed(&self) -> Result<BTreeMap<ProcessIdentity, ApplicationSnapshot>, ValidationError> {
+    fn indexed(&self) -> Result<BTreeMap<u32, ApplicationSnapshot>, ValidationError> {
         let mut applications = BTreeMap::new();
-        let mut pids = std::collections::BTreeSet::new();
         for application in &self.applications {
             application.identity.validate()?;
             if application.terminated {
                 return Err(ValidationError::Terminated);
             }
-            if !pids.insert(application.identity.process_id) {
+            let Entry::Vacant(entry) = applications.entry(application.identity.process_id) else {
                 return Err(ValidationError::DuplicateProcess);
-            }
-            let mut application = application.clone();
-            application.identifier = application
-                .identifier
-                .as_ref()
-                .map(ApplicationIdentifier::normalized)
-                .transpose()?;
-            applications.insert(application.identity, application);
+            };
+            entry.insert(ApplicationSnapshot {
+                identity: application.identity,
+                identifier: application
+                    .identifier
+                    .as_ref()
+                    .map(ApplicationIdentifier::normalized)
+                    .transpose()?,
+                display_name: application.display_name.clone(),
+                terminated: false,
+            });
         }
         if let Some(identity) = self.frontmost {
             identity.validate()?;
-            if !applications.contains_key(&identity) {
+            if applications
+                .get(&identity.process_id)
+                .is_none_or(|app| app.identity != identity)
+            {
                 return Err(ValidationError::TargetChanged);
             }
         }
@@ -208,16 +217,18 @@ impl ApplicationState {
         let previous = self.indexed()?;
         let current = next.indexed()?;
         let mut events = Vec::new();
-        if self.frontmost != next.frontmost
-            && let Some(application) = self.frontmost.and_then(|id| previous.get(&id))
-        {
+        let focus_changed = self.frontmost != next.frontmost;
+        if focus_changed && let Some(identity) = self.frontmost {
             events.push(ApplicationEvent {
                 lifecycle: Lifecycle::Deactivated,
-                application: application.clone(),
+                application: previous[&identity.process_id].clone(),
             });
         }
-        for (identity, application) in &previous {
-            if !current.contains_key(identity) {
+        for (process_id, application) in &previous {
+            if current
+                .get(process_id)
+                .is_none_or(|next| next.identity != application.identity)
+            {
                 let mut application = application.clone();
                 application.terminated = true;
                 events.push(ApplicationEvent {
@@ -226,20 +237,21 @@ impl ApplicationState {
                 });
             }
         }
-        for (identity, application) in &current {
-            if !previous.contains_key(identity) {
+        for (process_id, application) in &current {
+            if previous
+                .get(process_id)
+                .is_none_or(|before| before.identity != application.identity)
+            {
                 events.push(ApplicationEvent {
                     lifecycle: Lifecycle::Launched,
                     application: application.clone(),
                 });
             }
         }
-        if self.frontmost != next.frontmost
-            && let Some(application) = next.frontmost.and_then(|id| current.get(&id))
-        {
+        if focus_changed && let Some(identity) = next.frontmost {
             events.push(ApplicationEvent {
                 lifecycle: Lifecycle::Activated,
-                application: application.clone(),
+                application: current[&identity.process_id].clone(),
             });
         }
         Ok((

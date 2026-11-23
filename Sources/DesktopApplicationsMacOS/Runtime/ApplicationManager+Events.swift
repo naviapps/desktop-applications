@@ -145,21 +145,16 @@ extension ApplicationManager {
     deadline: ApplicationEventDeadline?
   ) async -> ApplicationEvent? {
     let stream = events(lifecycles: [lifecycle])
-    let identifier = ApplicationIdentifier(
-      recordedKind: .bundle, value: bundleIdentifier.precomposedStringWithCanonicalMapping)
+    let identifier = bundleIdentifier.precomposedStringWithCanonicalMapping
     return await withTaskGroup(of: ApplicationEvent?.self) { group in
       group.addTask {
         for await event in stream {
           guard !Task.isCancelled, deadline?.hasElapsed != true else {
             return nil
           }
-          // Retain Swift String equality for legacy bundle-identifier waits.
-          let recordedIdentifier = event.application.bundleIdentifier.map {
-            ApplicationIdentifier(
-              recordedKind: .bundle, value: $0.precomposedStringWithCanonicalMapping)
-          }
-          if event.matches(
-            lifecycle: lifecycle, identifier: identifier, recordedIdentifier: recordedIdentifier)
+          // AppKit waits use canonical bundle matching while preserving the recorded snapshot.
+          if event.lifecycle == lifecycle, let recorded = event.application.bundleIdentifier,
+            recorded.precomposedStringWithCanonicalMapping.utf8.elementsEqual(identifier.utf8)
           {
             return Task.isCancelled || deadline?.hasElapsed == true ? nil : event
           }

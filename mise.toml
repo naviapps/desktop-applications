@@ -16,14 +16,6 @@ uv = { version = "0.13.6", os = ["macos", "linux"] }
 "pypi:pyflakes" = { version = "4.1.0", os = ["macos", "linux"], depends = ["uv"] }
 "github:bnjbvr/cargo-machete" = { version = "0.9.2", platforms.windows-arm64.asset_pattern = "*-x86_64-pc-windows-msvc.tar.gz" }
 
-[tasks.lint]
-description = "Check owned source formatting and semantic lint before builds"
-run = { task = "sdk-tooling", args = ["quality", "check", "--dotnet"] }
-
-[tasks.format]
-description = "Format owned source without changing vendor or artifact bytes"
-run = { task = "sdk-tooling", args = ["quality", "format", "--dotnet"] }
-
 [tasks.sdk-tooling]
 description = "Run the shared SDK development and distribution checks"
-run = "uvx --from git+https://github.com/naviapps/sdk-tooling.git@38e38b0f5c291400f1d91ed2f2a58b3574a6ebc2 sdk-tooling"
+run = "uvx --from git+https://github.com/naviapps/sdk-tooling.git@8dfbcbf182072a9d51fd7599fc41288332d1df67 sdk-tooling"

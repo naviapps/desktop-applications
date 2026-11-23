@@ -105,7 +105,7 @@ def main(argv=None):
         windows.require_pe_machine(dll, "x64")
         c_fixture = candidate / "abi.exe"
         bindings.compile_c(
-            ROOT / "crates/ffi/tests/c/abi.c",
+            ROOT / "fixtures/c-consumer/main.c",
             output=c_fixture,
             compiler=[tools / "cl.exe"],
             include_dirs=[ROOT / "crates/ffi/include"],

@@ -22,26 +22,4 @@ public struct ApplicationEvent: Sendable, Equatable, Hashable {
     self.lifecycle = lifecycle
     self.application = application
   }
-
-  package func matches(
-    lifecycle: Lifecycle,
-    identifier: ApplicationIdentifier,
-    recordedIdentifier: ApplicationIdentifier?
-  ) -> Bool {
-    struct Candidate: Encodable {
-      let lifecycle: Lifecycle
-      let identifier: ApplicationIdentifier?
-    }
-    struct Selection: Encodable {
-      let lifecycles: [Lifecycle]
-      let identifier: ApplicationIdentifier
-      let candidates: [Candidate]
-    }
-    let indices: [Int]? = try? NativeCore.query(
-      4,
-      Selection(
-        lifecycles: [lifecycle], identifier: identifier,
-        candidates: [.init(lifecycle: self.lifecycle, identifier: recordedIdentifier)]))
-    return indices == [0]
-  }
 }

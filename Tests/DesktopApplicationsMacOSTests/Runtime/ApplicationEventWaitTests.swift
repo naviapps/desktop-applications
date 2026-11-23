@@ -110,6 +110,9 @@ final class ApplicationEventWaitTests: XCTestCase {
     let source = TestApplicationEventSource(replaysPastEvents: true)
     let application = applicationRuntimeEventSnapshot(
       bundleIdentifier: "com.example.cafe\u{0301}", isTerminated: true)
+    let padded = applicationRuntimeEventSnapshot(
+      bundleIdentifier: " com.example.cafe\u{0301} ", isTerminated: true)
+    source.emit(.termination, snapshot: padded)
     source.emit(.termination, snapshot: application)
 
     let result = await applicationRuntime(eventSource: source).waitForApplicationTermination(
