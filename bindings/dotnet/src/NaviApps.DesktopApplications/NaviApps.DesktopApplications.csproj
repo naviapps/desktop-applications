@@ -26,7 +26,7 @@
       <Link Condition="'$(OS)' == 'Windows_NT'">desktop_applications.dll</Link>
       <Link Condition="'$(OS)' != 'Windows_NT'">libdesktop_applications.dylib</Link>
     </None>
-    <None Include="../../../../README.md" Pack="true" PackagePath="/README.md" />
+    <None Include="../../README.md" Pack="true" PackagePath="/README.md" />
     <None Include="../../../../ThirdParty/**/*" Exclude="../../../../ThirdParty/**/.DS_Store;../../../../ThirdParty/**/registry-notices.json" Pack="true" PackagePath="licenses/" />
   </ItemGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">

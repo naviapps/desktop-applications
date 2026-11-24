@@ -16,7 +16,7 @@ RUNTIMES = (*MACOS_RUNTIMES, RID)
 def package_files(root):
     return {
         "LICENSE": root / "LICENSE",
-        "README.md": root / "README.md",
+        "README.md": root / "bindings/dotnet/README.md",
         **nuget.retained_notice_files(root / "ThirdParty", "licenses"),
     }
 

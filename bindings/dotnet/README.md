@@ -1,4 +1,4 @@
-# .NET shared contracts and Windows applications
+# DesktopApplications for .NET
 
 `NaviApps.DesktopApplications` targets .NET 10. Shared identity, process validation,
 lifecycle reconciliation and resource-cache transitions call the Rust native
@@ -10,9 +10,9 @@ Windows operations. Hosts own selection, permission UX, scheduling and UI.
 Download the combined `.nupkg` from a successful
 [SDK distribution run](https://github.com/naviapps/sdk-tooling/actions/workflows/check-sdk-distribution.yml)
 for your selected revision. Verify its SHA-256 against the accompanying receipt.
-The package includes `osx-arm64` and `osx-x64` for shared identity, reconciliation
-and resource caching, and `win-x64` for those contracts and native Windows
-adapters. Use an x64 .NET process under emulation on Windows 11 ARM64.
+The package includes `osx-arm64` and `osx-x64` on macOS 26 or later for shared
+identity, reconciliation and resource caching. The `win-x64` asset also supports
+the native Windows adapters. Use x64 .NET under emulation on Windows 11 ARM64.
 
 In a new project directory, substitute the absolute path to the package directory
 and use the exact version in the package filename:
@@ -35,18 +35,12 @@ var identifier = ApplicationIdentifier.Create(
 Console.WriteLine(identifier.Value);
 ```
 
-The package carries the managed assembly, README and original notices. It places
-the selected native libraries in `runtimes/<rid>/native/` as
-`libdesktop_applications.dylib` on macOS or `desktop_applications.dll` on Windows.
-Keep the runtime asset in the consumer output. Shared identity and cache calls
-need native ABI 2. String inputs must be valid UTF-16. An unpaired surrogate
-raises `ArgumentException` before the input reaches native code.
-
-The .NET runtime resolves the asset from the package. Source checks select the
-library with the `DesktopApplicationsNativeLibrary` MSBuild property and copy it
-beside the managed output. An ABI mismatch throws `InvalidOperationException`.
-Managed Windows operations throw
-`PlatformNotSupportedException` on other platforms.
+Keep the native library from `runtimes/<rid>/native/` in the consumer output.
+The package supplies ABI 2 as `libdesktop_applications.dylib` on macOS and
+`desktop_applications.dll` on Windows. An ABI mismatch throws
+`InvalidOperationException`. An unpaired UTF-16 surrogate in a string input
+throws `ArgumentException` before the call reaches native code. Windows adapter
+operations throw `PlatformNotSupportedException` on other platforms.
 
 ## Query Windows applications
 
@@ -172,50 +166,5 @@ cannot be inserted back into the same cache.
 
 ## Contributor validation
 
-See [development and validation](../../README.md#development-and-validation) for
-contributor checks. The public Windows x64 workflow runs the .NET binding fixture
-against a locally built DLL.
-
-For the packaging commands below, use the SDK Tooling revision in `mise.toml` as
-described under [distribution validation](../../README.md#distribution-validation).
-On macOS, `mise exec -- make test-nuget` tests the managed contracts, builds a
-temporary package from the verified universal framework, and runs an independent
-consumer for the executing architecture.
-
-Use native ARM64 Python, Rust and MSVC on an owned Windows 11 ARM64 worker. Install
-the `x86_64-pc-windows-msvc` Rust standard library and the x64 .NET SDK pinned in
-[`global.json`](../../global.json). Set `DOTNET_BIN` to the x64 executable's absolute path. From
-this checkout, run the Windows x64 gate with an SDK Tooling checkout at the
-pinned revision.
-
-```powershell
-$tooling = (Resolve-Path ../sdk-tooling).Path
-python -I -B "$tooling/ci/run_sdk_tooling.py" python -m distribution.verify_windows
-```
-
-The gate builds Rust and C ABI tests, runs the MSTest suite, exercises the
-application lifecycle with an owned x64 Win32 child, and installs the `win-x64`
-NuGet fixture in a clean consumer with JSON reflection disabled. Add `--native-aot`
-to publish and run that consumer as a native executable, including Shell resource
-lookup for the fixture itself. The fixture package is temporary. When the
-artifact directory is configured, `sdk-windows/win-x64` carries the accepted
-Windows native build and its receipt for later packing.
-
-The maintainer distribution workflow runs these native and Native AOT package
-checks on a GitHub-hosted x64 runner.
-
-To make one package with all three assets on macOS, place the accepted Windows
-artifact directory and its native receipt from the same source build under
-`.native-build/windows/win-x64/`.
-
-```sh
-mise run sdk-tooling -- python -m distribution.pack_nuget \
-  --runtime osx-arm64 --runtime osx-x64 --runtime win-x64
-mise run sdk-tooling -- nuget-consumer \
-  .native-build/packages/NaviApps.DesktopApplications.0.1.0.nupkg
-```
-
-The packer verifies the Windows DLL and macOS framework against their receipts
-and writes the combined package and its SHA-256 receipt to
-`.native-build/packages/`. The second command runs an independent macOS consumer
-from that package.
+See [development and validation](https://github.com/naviapps/desktop-applications/blob/main/README.md#development-and-validation)
+for source checks, native acceptance and package builds.

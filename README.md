@@ -130,12 +130,10 @@ explains opening, subscriptions and resource lookup.
 
 ## Install from .NET
 
-The `NaviApps.DesktopApplications` NuGet package contains the managed API and
-ABI 2 native assets for `osx-arm64`, `osx-x64` and `win-x64`. On Windows 11 ARM64,
-use x64 .NET under emulation. All managed identity and cache operations use the
-native library. See the
-[.NET guide](https://github.com/naviapps/desktop-applications/blob/main/bindings/dotnet/README.md)
-for installation, native loading, Windows limitations and examples.
+See the [NuGet guide](bindings/dotnet/README.md#install-and-load-native-assets)
+for package installation and a portable first call. It also covers
+[Windows applications](bindings/dotnet/README.md#query-windows-applications)
+and the managed resource APIs.
 
 ## Development and validation
 
@@ -172,8 +170,10 @@ Rust workspace tests and the .NET binding tests against a DLL built from source.
 | `mise exec -- make test-consumer` | Strict build and execution of the external SwiftPM fixture |
 
 The .NET test project restores its pinned MSTest SDK from its test-only
-NuGet configuration. After `make test-managed`, rerun a named case from the
-built test project and write a TRX report under its ignored output directory.
+NuGet configuration. The `DesktopApplicationsNativeLibrary` MSBuild property
+copies a selected native library beside the managed output for source checks.
+After `make test-managed`, rerun a named case from the built test project and
+write a TRX report under its ignored output directory.
 
 ```sh
 tests=bindings/dotnet/tests/DesktopApplications.Tests
@@ -226,13 +226,44 @@ discovering or controlling applications. A shallow checkout needs a complete loc
 mirror or bundle. Run `mise run sdk-tooling -- rust-c-consumers --git-source <path>`
 to use that source.
 
+### Local NuGet checks
+
+On macOS, `mise exec -- make test-nuget` tests the managed contracts and runs an
+independent consumer against a temporary package from the verified framework.
+To pack all three runtimes locally, put the accepted Windows DLL and native
+receipt for this source under `.native-build/windows/win-x64/`:
+
+```sh
+mise run sdk-tooling -- python -m distribution.pack_nuget \
+  --runtime osx-arm64 --runtime osx-x64 --runtime win-x64
+mise run sdk-tooling -- nuget-consumer \
+  .native-build/packages/NaviApps.DesktopApplications.0.1.0.nupkg
+```
+
+The packer verifies both native receipts and writes the combined package and its
+SHA-256 receipt together. The second command runs the packaged macOS consumer.
+
 ### Native acceptance
 
 Use the [owned macOS fixture guide](fixtures/acceptance/macos/README.md)
-for application lifecycle and opening-cancellation acceptance. Windows x64 runtime
-checks can run on the existing owned isolated ARM64 worker. The
-[.NET guide](https://github.com/naviapps/desktop-applications/blob/main/bindings/dotnet/README.md#contributor-validation)
-describes its application-effects and package-consumption runner.
+for application lifecycle and opening-cancellation acceptance.
+
+On an owned, isolated Windows 11 ARM64 worker, use native ARM64 Python, Rust
+and MSVC. Install the `x86_64-pc-windows-msvc` Rust standard library and the
+x64 .NET SDK pinned in [`global.json`](global.json). Set `DOTNET_BIN` to its
+absolute path. With SDK Tooling at the revision pinned in `mise.toml`, run:
+
+```powershell
+$tooling = (Resolve-Path ../sdk-tooling).Path
+python -I -B "$tooling/ci/run_sdk_tooling.py" python -m distribution.verify_windows
+```
+
+The gate builds Rust and C ABI tests, runs MSTest, exercises application
+lifecycle with an owned x64 Win32 child, and verifies a clean `win-x64` NuGet
+consumer. Add `--native-aot` to run the native executable with JSON reflection
+disabled and check Shell resources for the fixture. The hosted distribution
+workflow runs that check on Windows x64. With an artifact directory configured,
+`sdk-windows/win-x64` receives the accepted Windows build and its receipt.
 
 ### Native artifacts and notices
 
