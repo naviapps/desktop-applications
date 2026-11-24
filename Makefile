@@ -1,8 +1,6 @@
 .DEFAULT_GOAL := check
 SDK_TOOLING ?= mise run sdk-tooling --
 SWIFT_FLAGS := -Xswiftc -strict-concurrency=complete -Xswiftc -warnings-as-errors
-CBINDGEN := cbindgen --config crates/ffi/cbindgen.toml crates/ffi/src/lib.rs
-C_HEADER := crates/ffi/include/desktop_applications.h
 .PHONY: check check-source check-ci-source test-managed check-distribution native native-verify check-header generate-header test test-consumer test-installed-consumers test-rust test-distribution-tools test-nuget lint clean
 check: check-source test test-consumer
 
@@ -21,14 +19,14 @@ clean:
 	  fixtures/acceptance/windows/dotnet/bin fixtures/acceptance/windows/dotnet/obj
 lint:
 	$(SDK_TOOLING) quality check --dotnet
-native: check-header
+native: generate-header
 	$(SDK_TOOLING) xcframework
 native-verify: check-header
 	$(SDK_TOOLING) xcframework --verify
 check-header:
-	bash -o pipefail -c '$(CBINDGEN) | diff -u "$(C_HEADER)" -'
+	$(SDK_TOOLING) c-headers check
 generate-header:
-	$(CBINDGEN) --output "$(C_HEADER)"
+	$(SDK_TOOLING) c-headers generate
 test:
 	swift test $(SWIFT_FLAGS)
 test-consumer:
