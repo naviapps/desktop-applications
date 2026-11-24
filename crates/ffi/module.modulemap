@@ -1,4 +1,0 @@
-framework module CDesktopApplications {
-  umbrella header "desktop_applications.h"
-  export *
-}

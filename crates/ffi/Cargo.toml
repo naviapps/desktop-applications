@@ -9,6 +9,7 @@ rust-version.workspace = true
 
 [package.metadata.c-bindings]
 module = "CDesktopApplications"
+generated = true
 
 [lib]
 name = "desktop_applications"

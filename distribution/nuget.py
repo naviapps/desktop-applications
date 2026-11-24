@@ -13,6 +13,7 @@ from sdk_tooling import artifacts
 from sdk_tooling import dotnet as managed
 from sdk_tooling import nuget as packages
 from sdk_tooling.adapters import support_inputs
+from sdk_tooling.c_headers import prepare_generated
 from sdk_tooling.xcframework import xcframework
 
 from distribution.pack_nuget import MACOS_RUNTIMES, PACKAGE, package_files
@@ -108,6 +109,7 @@ def main(argv=None):
     dotnet = env.get("DOTNET_BIN") or shutil.which("dotnet", path=env.get("PATH"))
     if not dotnet:
         raise SystemExit("Install .NET 10 or set DOTNET_BIN.")
+    prepare_generated(Path.cwd(), env=env)
     native = xcframework()
     native.verify(env)
     root = native.root

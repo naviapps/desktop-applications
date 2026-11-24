@@ -12,6 +12,7 @@ from pathlib import Path
 from sdk_tooling import dotnet as managed
 from sdk_tooling import vm_environment as vm
 from sdk_tooling.adapters import load, support_inputs
+from sdk_tooling.c_headers import prepare_generated
 from sdk_tooling.native_plan import ffi_product
 from sdk_tooling.windows_delivery import RID, TARGET, X64Acceptance
 
@@ -45,6 +46,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if sys.platform != "win32":
         parser.error("Use an owned Windows worker for runtime acceptance")
+    prepare_generated(ROOT)
     native = ffi_product(ROOT)
 
     support = support_inputs()

@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from sdk_tooling import nuget
+from sdk_tooling.c_headers import prepare_generated
 from sdk_tooling.windows_delivery import RID
 from sdk_tooling.xcframework import xcframework
 
@@ -28,6 +29,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if sorted(args.runtime) != sorted(RUNTIMES):
         parser.error("DesktopApplications packages require all three runtimes")
+    prepare_generated(ROOT)
     package = nuget.pack_native(
         xcframework(ROOT),
         project=ROOT / "bindings/dotnet/src" / PACKAGE / f"{PACKAGE}.csproj",

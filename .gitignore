@@ -14,3 +14,7 @@ __pycache__/
 /fixtures/**/bin/
 /fixtures/**/obj/
 /fixtures/**/windows/target/
+
+# Generated C declarations
+/crates/ffi/include/desktop_applications.h
+/crates/ffi/module.modulemap

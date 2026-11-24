@@ -19,7 +19,7 @@ clean:
 	  fixtures/acceptance/windows/dotnet/bin fixtures/acceptance/windows/dotnet/obj
 lint:
 	$(SDK_TOOLING) quality check --dotnet
-native: generate-header
+native:
 	$(SDK_TOOLING) xcframework
 native-verify: check-header
 	$(SDK_TOOLING) xcframework --verify
