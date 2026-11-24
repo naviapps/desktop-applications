@@ -7,22 +7,33 @@ Windows operations. Hosts own selection, permission UX, scheduling and UI.
 
 ## Install and load native assets
 
-Obtain the combined `.nupkg` from one reviewed SDK build. It includes
-`osx-arm64` and `osx-x64` for shared identity, reconciliation and resource
-caching, and `win-x64` for shared contracts and native Windows adapters. Use an
-x64 .NET process under emulation on Windows 11 ARM64.
+Download the combined `.nupkg` from a successful
+[SDK distribution run](https://github.com/naviapps/sdk-tooling/actions/workflows/check-sdk-distribution.yml)
+for your selected revision. Verify its SHA-256 against the accompanying receipt.
+The package includes `osx-arm64` and `osx-x64` for shared identity, reconciliation
+and resource caching, and `win-x64` for those contracts and native Windows
+adapters. Use an x64 .NET process under emulation on Windows 11 ARM64.
 
-With the package in a local feed, use its version and feed directory from your
-consumer project:
+In a new project directory, substitute the absolute path to the package directory
+and use the exact version in the package filename:
 
 ```sh
-dotnet add package NaviApps.DesktopApplications \
-  --version "<PACKAGE_VERSION>" --source /absolute/path/to/packages \
-  --package-directory /absolute/path/to/new-package-cache
+dotnet new console --framework net10.0 --no-restore
+dotnet package add NaviApps.DesktopApplications --version "[0.1.0]" --no-restore
+dotnet restore --source "/absolute/path/to/sdk-packages" --packages .nuget-packages
 ```
 
-Use an empty cache when moving from a platform-specific build at the same
-version. Set `NUGET_PACKAGES` to that cache for subsequent restores.
+Use a fresh cache directory whenever you switch candidates with the same version.
+On either platform, replace `Program.cs` with this example and run
+`dotnet run --no-restore`. It prints `com.example.app` after the native call.
+
+```csharp
+using NaviApps.DesktopApplications;
+
+var identifier = ApplicationIdentifier.Create(
+    ApplicationIdentifierKind.Bundle, " com.example.app ");
+Console.WriteLine(identifier.Value);
+```
 
 The package carries the managed assembly, README and original notices. It places
 the selected native libraries in `runtimes/<rid>/native/` as
@@ -37,14 +48,12 @@ beside the managed output. An ABI mismatch throws `InvalidOperationException`.
 Managed Windows operations throw
 `PlatformNotSupportedException` on other platforms.
 
-## Query applications
+## Query Windows applications
+
+Run this example on Windows to enumerate visible applications.
 
 ```csharp
 using NaviApps.DesktopApplications;
-
-var identifier = ApplicationIdentifier.Create(
-    ApplicationIdentifierKind.Bundle, " com.example.app ");
-Console.WriteLine(identifier.Value); // com.example.app
 
 var manager = new WindowsApplicationManager();
 foreach (var application in manager.GetRunningApplications())
