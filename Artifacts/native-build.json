@@ -1336,12 +1336,12 @@
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Headers": "036ae9446c4f0c59046671d1d96e2de4f606b340d8a5c1927b2d51bc293e0365",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Modules": "278b6b2d8f8418e2e4877a67a109b6e3865174e4fa7405870a643e95cbc2f783",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Resources": "c213ee8e9c523538d862da3e5716b64bf090f6a1be08914954ae33cfbda7dbb2",
-    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/CDesktopApplications": "4b1023713a937be1f623a338958dfea5ebaaad243edd6641cc0ed46f87915f90",
+    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/CDesktopApplications": "f71ebbc0d0a62fa639ea6f80d950c5f816217cd0e2ecfbe7dc76ed0dc1ae0899",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/Headers/desktop_applications.h": "0c3195e473298cf53ce5ff140eb968e576952ad347760035326cebcc1fa532d0",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/Modules/module.modulemap": "4fda91eae9ef882505b08f3f1f3d8e040f9ba5929904fafe9274d379f69c5c80",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/Resources/Info.plist": "e283e455781578e7e027fe55a8498699e595990bba5de0865450f6c0eeae4987",
-    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/Resources/ThirdPartyNotices.txt": "2116a8ded0f31d28bed9fd4ceeb7eb763eb3b5cbd26da35c84147b60761678b4",
-    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/_CodeSignature/CodeResources": "127db9cf1b9b7f65bfa6e5ae5af79458ab02445abe277f02ff41f356fb39f6b3",
+    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/Resources/ThirdPartyNotices.txt": "56c9e97cf02ff10cb1800bdfa17d9a745f4c317eb6b774be9557cc14b4b0ee4b",
+    "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/A/_CodeSignature/CodeResources": "1a3ca9231d2eeb687068ea51c810c6c081cc10c55a153583cfb24448893643fd",
     "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework/Versions/Current": "ee26006c07174064a7bed9b283a8b016d74a295e05c4e23a1846538d69b23c5f"
   },
   "productionSources": [
@@ -1358,7 +1358,7 @@
     "cargo.py": "4f468ebfd98d094b464bbb4ac354b65726a1b099f8cfd50c9c37a3fc495c8544",
     "cargo_build.py": "96a1a5b00a20fd64d8691eeba89839144e7e5bd8fd989e9cb0a4a80152f98590",
     "crates/rustc-dep-info/src/main.rs": "0a59fb162cc855001899ad9b83875fac0ed837e73caafd116453352c9b56e2cf",
-    "ffi.py": "d69e16a62490c95c7a2935e93ac6d557de2fbf6c66afde7aace3099a3f0ed03f",
+    "ffi.py": "ea75aea07673c1b54ac4cf5178876abef3e20063eb5774b5d181e5d9ebc681c9",
     "native_plan.py": "126791c1993dded2be0f46784a28528d40ed1218c46d1f1aadb2c026f047dcd3",
     "xcframework.py": "277c2e390f94f45614479e289deccea9c2c3e0af71d5c6ce5421872161671558"
   }

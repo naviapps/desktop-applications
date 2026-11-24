@@ -7,7 +7,7 @@
     <PackageId>NaviApps.DesktopApplications</PackageId>
     <Version>0.1.0</Version>
     <Description>Application identity, lifecycle reconciliation and native Windows application management.</Description>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
