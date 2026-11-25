@@ -1,0 +1,41 @@
+[[native.artifacts]]
+id = "sdk"
+symbol_prefix = "desktop_applications_"
+minimum_macos = "26.0"
+
+[checks.swift]
+inputs = ["Package.swift", "Sources", "Tests", "Artifacts", "ThirdParty", "LICENSE"]
+executable = "DesktopApplicationsConsumer"
+
+[checks.rust_c]
+git_url = "https://github.com/naviapps/desktop-applications.git"
+rust_packages = ["desktop-applications"]
+
+[checks.rust_c.c]
+framework = "Artifacts/CDesktopApplications.xcframework/macos-arm64_x86_64/CDesktopApplications.framework"
+header = "desktop_applications.h"
+
+[checks.windows_bindings]
+packages = ["desktop-applications-ffi"]
+projects = ["bindings/dotnet/tests/DesktopApplications.Tests/DesktopApplications.Tests.csproj"]
+
+[checks.nuget]
+package_id = "NaviApps.DesktopApplications"
+fixtures = ["fixtures/consumers/dotnet/Program.cs"]
+windows_x64 = true
+
+[distribution.macos]
+commands = [
+  ["xcrun", "swift", "--version"],
+  ["make", "native-verify", "test-distribution-tools", "test-installed-consumers"],
+]
+
+[distribution.windows]
+commands = [
+  ["rustup", "install", "--no-self-update"],
+  ["sdk-tooling", "python", "-m", "unittest", "discover", "-s", "distribution/tests"],
+  ["sdk-tooling", "windows", "-m", "distribution.verify_windows", "--native-aot"],
+]
+
+[distribution.nuget]
+pack = "distribution/pack_nuget.py"

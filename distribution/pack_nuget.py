@@ -36,7 +36,7 @@ def main(argv=None):
         package_files=package_files(ROOT),
         nuget_config=ROOT / "bindings/dotnet/NuGet.Config",
         runtimes=args.runtime,
-        input_files=[Path(__file__), ROOT / "mise.toml", ROOT / "native.toml"],
+        input_files=[Path(__file__), ROOT / "mise.toml"],
     )
     if args.result is not None:
         with args.result.open("x", encoding="utf-8") as output:
