@@ -155,9 +155,9 @@ use the SDK fixtures in this checkout and the public SDK Tooling revision pinned
 in [`mise.toml`](mise.toml). Mise fetches that revision for lint, formatting,
 Swift consumer and installed-consumer checks.
 
-Public GitHub Actions runs the same Swift tests and standalone consumer on macOS 26
-with Xcode 26.6 and macOS 27 with Xcode 27.2. The public Windows x64 job runs the
-Rust workspace tests and the .NET binding tests against a DLL built from source.
+The [SDK workflow](.github/workflows/check.yml) runs the same Swift tests and
+standalone consumer on macOS 26 and 27. The Windows x64 job runs the Rust
+workspace tests and the .NET binding tests against a DLL built from source.
 
 ### Focused checks and consumers
 

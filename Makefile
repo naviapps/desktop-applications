@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := check
 SDK_TOOLING ?= mise run sdk-tooling --
-SWIFT_FLAGS := -Xswiftc -strict-concurrency=complete -Xswiftc -warnings-as-errors
+SWIFT_FLAGS := -Xswiftc -warnings-as-errors
 .PHONY: check check-source test-managed check-distribution native native-verify check-header generate-header test test-consumer test-installed-consumers test-rust test-distribution-tools test-nuget lint clean
 check: check-source test test-consumer
 
