@@ -3,7 +3,6 @@
 
 import argparse
 import hashlib
-import os
 import shutil
 import sys
 import tempfile
@@ -99,13 +98,7 @@ def main(argv=None):
         raise SystemExit("Run the Windows distribution fixture on an owned Windows worker.")
 
     support = support_inputs()
-    env = dict(
-        os.environ,
-        DOTNET_CLI_TELEMETRY_OPTOUT="1",
-        DOTNET_NOLOGO="1",
-        DOTNET_CLI_USE_MSBUILD_SERVER="0",
-        MSBUILDDISABLENODEREUSE="1",
-    )
+    env = managed.subprocess_environment()
     dotnet = env.get("DOTNET_BIN") or shutil.which("dotnet", path=env.get("PATH"))
     if not dotnet:
         raise SystemExit("Install .NET 10 or set DOTNET_BIN.")
