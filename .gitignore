@@ -11,8 +11,10 @@ __pycache__/
 /build/
 /fixtures/**/.build/
 /fixtures/**/.swiftpm/
-/fixtures/**/bin/
-/fixtures/**/obj/
+/fixtures/acceptance/windows/dotnet/bin/
+/fixtures/acceptance/windows/dotnet/obj/
+/fixtures/windows/bin/
+/fixtures/windows/obj/
 /fixtures/**/windows/target/
 
 # Generated C declarations

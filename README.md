@@ -184,7 +184,7 @@ mise exec -- dotnet run --no-build --configuration Release --project "$tests" --
 Use `mise exec -- make format` to format owned source. The quality
 commands skip native artifacts and the original notices under `ThirdParty/`.
 
-`test-consumer` copies the installable Swift package, tests, native artifacts and
+`test-consumer` copies the installable Swift package, native artifacts and
 notices into a temporary SDK tree, then builds and runs `fixtures/consumers/swift`
 as a separate package. It imports both products and exercises synthetic
 identifier normalization, caching and process validation without real OS effects.
