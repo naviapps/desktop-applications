@@ -14,28 +14,11 @@ from sdk_tooling import vm_environment as vm
 from sdk_tooling.adapters import load, support_inputs
 from sdk_tooling.c_headers import prepare_generated
 from sdk_tooling.native_plan import ffi_product
-from sdk_tooling.windows_delivery import RID, TARGET, X64Acceptance
+from sdk_tooling.windows_delivery import RID, TARGET, X64Acceptance, export_native
 
 from distribution.nuget import pack_and_consume
 
 ROOT = Path(__file__).resolve().parents[1]
-
-
-def export_native(built, inventory, artifact_root, tooling):
-    destination = artifact_root / "sdk-windows" / RID
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    if (
-        destination.exists()
-        or destination.is_symlink()
-        or not destination.parent.resolve().is_relative_to(artifact_root.resolve())
-    ):
-        raise ValueError("Windows native export requires a new directory inside the artifact root")
-    with tempfile.TemporaryDirectory(dir=destination.parent, prefix="native-export-") as temporary:
-        stage = Path(temporary) / RID
-        shutil.copytree(built, stage, symlinks=True)
-        if tooling.hashes(tooling.files(stage), stage) != inventory:
-            raise ValueError("Exported Windows native files differ from the accepted build")
-        stage.rename(destination)
 
 
 def main(argv=None):
@@ -100,7 +83,6 @@ def main(argv=None):
                 built,
                 native_receipt["outputs"] | {"native-build.json": native_receipt_digest},
                 artifacts,
-                artifacts_tooling,
             )
         receipt = {
             "source": source,
