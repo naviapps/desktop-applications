@@ -146,11 +146,10 @@ install the pinned tools and fetch dependencies before the validation:
 mise trust mise.toml
 mise install
 mise exec -- cargo fetch --locked
-mise exec -- cargo fetch --locked --manifest-path fixtures/acceptance/windows/Cargo.toml
 mise exec -- make check
 ```
 
-`make check` runs lint, the Rust workspace and Windows fixture tests, managed
+`make check` runs lint, Rust workspace tests (including the Windows fixture), managed
 MSTest cases, strict Swift tests, and a standalone SwiftPM consumer. These checks
 use the SDK fixtures in this checkout and the public SDK Tooling revision pinned
 in [`mise.toml`](mise.toml). Mise fetches that revision for lint, formatting,
@@ -165,7 +164,7 @@ Rust workspace tests and the .NET binding tests against a DLL built from source.
 | Command from the repository root  | Evidence                                                   |
 | --------------------------------- | ---------------------------------------------------------- |
 | `mise exec -- make lint`          | Owned-source formatting and semantic lint                  |
-| `mise exec -- make test-rust`     | Rust workspace and Windows fixture tests                   |
+| `mise exec -- make test-rust`     | Rust workspace tests, including the Windows fixture        |
 | `mise exec -- make test-managed`  | Managed API contracts                                      |
 | `mise exec -- make test-consumer` | Strict build and execution of the external SwiftPM fixture |
 
@@ -293,8 +292,8 @@ and lifecycle behavior. Swift and .NET verify public value semantics, native dat
 decoding, resource ownership and adapter behavior.
 Swift uses `Sources/` and `Tests/`; .NET uses `bindings/dotnet/src/` and
 `bindings/dotnet/tests/`. Independent package consumers live in `fixtures/consumers/`.
-The standalone native apps live in `fixtures/acceptance/`, where the Windows Cargo
-workspace supplies the x64 test target for the .NET acceptance driver. The scripts
+The standalone native apps live in `fixtures/acceptance/`. The Rust workspace
+includes the Windows x64 test target for the .NET acceptance driver. The scripts
 for building and checking release packages live in `distribution/`.
 
 ## License

@@ -109,7 +109,7 @@ def main(argv=None):
     dotnet = env.get("DOTNET_BIN") or shutil.which("dotnet", path=env.get("PATH"))
     if not dotnet:
         raise SystemExit("Install .NET 10 or set DOTNET_BIN.")
-    prepare_generated(Path.cwd(), env=env)
+    prepare_generated(Path.cwd(), env=env, verify=True)
     native = xcframework()
     native.verify(env)
     root = native.root

@@ -561,7 +561,7 @@
           "x86_64-apple-darwin": []
         },
         "inputs": {
-          "Cargo.toml": "1a053a0b6dbabda61d70e9e23b8b6d13c001b884329ba8707ca45404b50714bf",
+          "Cargo.toml": "0bcb5d0a4f63d9f8164fce07775392f2cf7013a1e383b9b9181e596f0d5b8f46",
           "crates/core/Cargo.toml": "d86dff2797631c1801f611dbf7bb31f26d974b445b5868b1f64859f788f17f1f"
         },
         "name": "desktop-applications",
@@ -574,7 +574,7 @@
           "x86_64-apple-darwin": []
         },
         "inputs": {
-          "Cargo.toml": "1a053a0b6dbabda61d70e9e23b8b6d13c001b884329ba8707ca45404b50714bf",
+          "Cargo.toml": "0bcb5d0a4f63d9f8164fce07775392f2cf7013a1e383b9b9181e596f0d5b8f46",
           "crates/ffi/Cargo.toml": "72eada4e102cf4a6813ad9246f11bb32372aa28f67f102ab8ac09ec6faa01961"
         },
         "name": "desktop-applications-ffi",
@@ -587,7 +587,7 @@
           "x86_64-apple-darwin": []
         },
         "inputs": {
-          "Cargo.toml": "1a053a0b6dbabda61d70e9e23b8b6d13c001b884329ba8707ca45404b50714bf",
+          "Cargo.toml": "0bcb5d0a4f63d9f8164fce07775392f2cf7013a1e383b9b9181e596f0d5b8f46",
           "crates/windows/Cargo.toml": "8ffe2540685b694ac87374c104d81d6e207b56a08ba30e4aa2b4fd44d2ee3ef4"
         },
         "name": "desktop-applications-windows",
@@ -1261,8 +1261,8 @@
       "x86_64-apple-darwin"
     ],
     "workspaceInputs": {
-      "Cargo.lock": "c778a822f9da5f95a75b9c00e7cfb4259af7d0d982ae350b4c88a1db476bf9b0",
-      "Cargo.toml": "1a053a0b6dbabda61d70e9e23b8b6d13c001b884329ba8707ca45404b50714bf",
+      "Cargo.lock": "086340ae43c8c4ef7664e4c9da0c512e07d45f6331453949f13e124e68b4dd55",
+      "Cargo.toml": "0bcb5d0a4f63d9f8164fce07775392f2cf7013a1e383b9b9181e596f0d5b8f46",
       "crates/core/Cargo.toml": "d86dff2797631c1801f611dbf7bb31f26d974b445b5868b1f64859f788f17f1f",
       "crates/ffi/Cargo.toml": "72eada4e102cf4a6813ad9246f11bb32372aa28f67f102ab8ac09ec6faa01961",
       "crates/windows/Cargo.toml": "8ffe2540685b694ac87374c104d81d6e207b56a08ba30e4aa2b4fd44d2ee3ef4",
@@ -1280,8 +1280,8 @@
     "_desktop_applications_resource_cache_query"
   ],
   "inputs": {
-    "Cargo.lock": "c778a822f9da5f95a75b9c00e7cfb4259af7d0d982ae350b4c88a1db476bf9b0",
-    "Cargo.toml": "1a053a0b6dbabda61d70e9e23b8b6d13c001b884329ba8707ca45404b50714bf",
+    "Cargo.lock": "086340ae43c8c4ef7664e4c9da0c512e07d45f6331453949f13e124e68b4dd55",
+    "Cargo.toml": "0bcb5d0a4f63d9f8164fce07775392f2cf7013a1e383b9b9181e596f0d5b8f46",
     "LICENSE": "e18e92825e5b064c568d67d636729c2d8669b61ea9d68b0fa5283b713d70aab1",
     "ThirdParty/Rust/COPYRIGHT": "172020dbfd5b53a226dfde77616190a48dcff519b0bc0e6deb91a8450782c4af",
     "ThirdParty/Rust/COPYRIGHT-library.html": "626556344c12679d7cab2c1aa2ce80de01937b62c2c88c62f0650a469be18799",

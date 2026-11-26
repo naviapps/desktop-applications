@@ -1,16 +1,12 @@
 .DEFAULT_GOAL := check
 SDK_TOOLING ?= mise run sdk-tooling --
 SWIFT_FLAGS := -Xswiftc -strict-concurrency=complete -Xswiftc -warnings-as-errors
-.PHONY: check check-source check-ci-source test-managed check-distribution native native-verify check-header generate-header test test-consumer test-installed-consumers test-rust test-distribution-tools test-nuget lint clean
+.PHONY: check check-source test-managed check-distribution native native-verify check-header generate-header test test-consumer test-installed-consumers test-rust test-distribution-tools test-nuget lint clean
 check: check-source test test-consumer
 
 check-source: lint check-header test-rust test-managed
 
-check-ci-source:
-	cargo fetch --locked --manifest-path fixtures/acceptance/windows/Cargo.toml
-	$(MAKE) check-source
-
-check-distribution: check-header test-distribution-tools test-nuget
+check-distribution: test-distribution-tools test-nuget
 clean:
 	$(SDK_TOOLING) clean .build target .native-build \
 	  fixtures/consumers/swift/.build fixtures/acceptance/macos/.build fixtures/acceptance/windows/target \
@@ -37,11 +33,10 @@ test-nuget:
 	$(SDK_TOOLING) python -m distribution.nuget
 test-distribution-tools:
 	$(SDK_TOOLING) python -m unittest discover -s distribution/tests -v
+# The Windows x64 fixture binary is built by the native acceptance driver.
 test-rust:
-	cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+	cargo clippy --workspace --exclude desktop-applications-test-target --all-targets --locked --offline -- -D warnings
 	cargo test --workspace --locked --offline
-	cargo fmt --manifest-path fixtures/acceptance/windows/Cargo.toml -- --check
-	cargo test --manifest-path fixtures/acceptance/windows/Cargo.toml --locked --offline
 
 .PHONY: format
 format:

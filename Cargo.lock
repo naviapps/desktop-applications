@@ -21,6 +21,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "desktop-applications-test-target"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "windows-sys",
+]
+
+[[package]]
 name = "desktop-applications-windows"
 version = "0.1.0"
 dependencies = [

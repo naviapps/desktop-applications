@@ -5,7 +5,6 @@ import json
 import os
 import sys
 import tempfile
-import tomllib
 import unittest
 import zipfile
 from contextlib import nullcontext
@@ -21,20 +20,6 @@ from distribution import verify_windows as driver
 
 
 class WindowsOutputTests(unittest.TestCase):
-    def test_fixture_uses_the_registry_inputs_fetched_for_the_sdk(self):
-        root = Path(__file__).resolve().parents[2]
-
-        def registry(path):
-            return {
-                (package["name"], package["version"], package["checksum"])
-                for package in tomllib.loads((root / path).read_text())["package"]
-                if package.get("source", "").startswith("registry+")
-            }
-
-        self.assertEqual(
-            registry("fixtures/acceptance/windows/Cargo.lock") - registry("Cargo.lock"), set()
-        )
-
     def test_delivery_packer_rejects_a_runtime_subset_before_it_can_overwrite_the_package(self):
         with (
             patch.object(pack_nuget.nuget, "pack_native") as pack,
